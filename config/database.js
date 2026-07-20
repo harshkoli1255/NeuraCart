@@ -1,7 +1,10 @@
 // Database connection configuration.
 const mongoose = require("mongoose");
+require('dotenv').config()
+const uri = process.env.MONGO_URI;
+
 async function connectDB() {
-    await mongoose.connect('mongodb://127.0.0.1:27017/NeuraCart');
+    await mongoose.connect(uri);
 }
 
 connectDB().then(() => {
@@ -12,3 +15,4 @@ connectDB().then(() => {
 })
 
 module.exports = connectDB;
+
