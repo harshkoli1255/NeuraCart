@@ -8,13 +8,31 @@ const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const methodOverride = require("method-override");
 const expressLayouts = require("express-ejs-layouts");
+const session = require("express-session");
+const MongoStore = require("connect-mongo").default;
 const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
+const passport = require("passport");
+// Require passport config
+require("./config/passport")(passport);
 
 const app = express();
 
-// Security
-app.use(helmet());
+// Security — CSP configured to allow scripts/styles from same origin
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc:  ["'self'"],
+            scriptSrc:   ["'self'"],
+            styleSrc:    ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc:     ["'self'", "https://fonts.gstatic.com"],
+            imgSrc:      ["'self'", "data:", "blob:"],
+            connectSrc:  ["'self'"],
+            objectSrc:   ["'none'"],
+            upgradeInsecureRequests: [],
+        },
+    },
+}));
 
 // CORS
 app.use(cors());
@@ -32,6 +50,20 @@ app.use(express.urlencoded({ extended: true }));
 // Cookies
 app.use(cookieParser());
 
+// Session
+app.use(session({
+    secret: process.env.SESSION_SECRET || "fallback_secret_key_for_development",
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI
+    })
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
 // PUT DELETE support
 app.use(methodOverride("_method"));
 
@@ -45,25 +77,57 @@ app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
 app.set("layout", "layouts/main");
 
-// Home
-app.get("/", (req, res) => {
-    res.render("index", {
-        title: "NeuraCart"
-    });
+// Routes
+const authRoutes = require("./routes/auth.routes");
+const productRoutes = require("./routes/product.routes");
+app.use("/auth", authRoutes);
+app.use("/api/products", productRoutes);
+
+
+const Product = require("./models/Product");
+
+// Render Homepage
+app.get('/', async (req, res) => {
+    try {
+        const Product = require('./models/Product');
+        const featuredProducts = await Product.find({ isFeatured: true }).populate('category').limit(8);
+        res.render('index', { 
+            title: 'NeuraCart - AI Powered Shopping',
+            products: featuredProducts 
+        });
+    } catch (err) {
+        console.error(err);
+        res.render('index', { title: 'NeuraCart', products: [] });
+    }
+});
+
+// Render Product Detail Page
+app.get('/product/:id', async (req, res) => {
+    try {
+        const Product = require('./models/Product');
+        const Review = require('./models/Review');
+        
+        const product = await Product.findById(req.params.id).populate('category');
+        if (!product) {
+            return res.status(404).send('Product not found');
+        }
+
+        const reviews = await Review.find({ product: product._id })
+                                    .populate('user', 'name')
+                                    .sort({ createdAt: -1 });
+
+        res.render('product', {
+            title: `${product.title} - NeuraCart`,
+            product,
+            reviews
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
 });
 
 app.use(notFound);
 app.use(errorHandler);
-
-app.use(session(
-    {
-        secret:process.env.SESSION_SECRET,
-        resave:false,
-        saveUninitialized:false,
-        store:MongoStore.create({
-            mongoUrl:process.env.MONGO_URI
-        })
-    })
-);
 
 module.exports = app;
