@@ -112,7 +112,9 @@ Output ONLY a valid JSON object. No markdown, no conversational text.
             // Use $or to find products that match AT LEAST ONE of the expanded tags/keywords in title or tags (exclude description to avoid noise)
             dbQuery.$or = [
                 { aiTags: { $in: regexKeywords } },
-                { title: { $in: regexKeywords } }
+                { title: { $in: regexKeywords } },
+                { name: { $in: regexKeywords } },
+                { subcategory: { $in: regexKeywords } }
             ];
         } else {
             // If no keywords but intent is shopping (e.g., "show me something cheap"), match all if price specified
@@ -201,5 +203,53 @@ Respond ONLY with a JSON array of the 4 best matching product IDs (strings). E.g
     } catch (error) {
         console.error("AI Recommendation Error:", error);
         res.status(500).json({ success: false, error: 'Recommendation failed' });
+    }
+};
+
+exports.getCategoryPage = async (req, res, next) => {
+    try {
+        const { categoryName } = req.params;
+        const { subcategory, sort } = req.query;
+
+        // Find the category (case-insensitive)
+        const category = await Category.findOne({
+            name: { $regex: new RegExp(`^${categoryName}$`, 'i') }
+        });
+
+        if (!category) {
+            return res.status(404).render('404', { title: 'Category Not Found' });
+        }
+
+        // Distinctly fetch all unique subcategories for this category (for sidebar)
+        const subcategories = await Product.distinct('subcategory', { category: category._id });
+
+        // Build product query
+        let query = { category: category._id };
+        if (subcategory) {
+            query.subcategory = subcategory;
+        }
+
+        // Build sort option
+        let sortOption = {};
+        if (sort === 'low') {
+            sortOption.price = 1;
+        } else if (sort === 'high') {
+            sortOption.price = -1;
+        }
+
+        // Fetch products
+        const products = await Product.find(query).sort(sortOption).populate('category');
+
+        res.render('category', {
+            title: `${category.name} - NeuraCart`,
+            category,
+            products,
+            subcategories,
+            selectedSubcategory: subcategory || '',
+            selectedSort: sort || '',
+            categoryName: category.name
+        });
+    } catch (error) {
+        next(error);
     }
 };

@@ -122,14 +122,14 @@
                             <a href="/product/${product._id}" class="product-card" style="text-decoration: none; color: inherit; display: block;">
                                 ${product.isFeatured ? '<span class="product-badge">Hot</span>' : ''}
                                 <button class="product-wishlist" aria-label="Add to wishlist" onclick="event.preventDefault();">♡</button>
-                                <div class="product-image">
-                                    ${product.category ? product.category.icon : '📁'}
+                                <div class="product-image" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                                    ${product.image ? `<img src="${product.image}" alt="${product.name || product.title}" style="width: 100%; height: 100%; object-fit: cover;">` : (product.category ? product.category.icon : '📁')}
                                 </div>
                                 <div class="product-info">
                                     <span class="product-category-tag">${product.category ? product.category.name : 'General'}</span>
-                                    <h3 class="product-title">${product.title}</h3>
+                                    <h3 class="product-title">${product.name || product.title}</h3>
                                     <div class="product-meta">
-                                        <span class="product-price">$${product.price.toFixed(2)}</span>
+                                        <span class="product-price">₹${product.price.toFixed(2)}</span>
                                         <span class="product-rating">★ ${product.ratings.average}</span>
                                     </div>
                                     <button class="btn-add-cart" onclick="event.preventDefault();">

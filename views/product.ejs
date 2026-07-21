@@ -195,7 +195,7 @@
     box-shadow: 0 20px 40px rgba(0,0,0,0.15);
 }
 .aplus-badge { background: rgba(255,255,255,0.1); padding: 8px 20px; border-radius: 100px; font-weight: 600; letter-spacing: 1px; margin-bottom: 20px; }
-.aplus-title { font-size: 48px; font-weight: 900; margin-bottom: 24px; background: linear-gradient(to right, #a78bfa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.aplus-title { font-size: 48px; font-weight: 900; margin-bottom: 24px; background: linear-gradient(to right, #a78bfa, #c084fc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .aplus-desc { font-size: 18px; max-width: 600px; line-height: 1.6; opacity: 0.8; margin-bottom: 40px; }
 .aplus-features {
     display: grid;
@@ -342,12 +342,22 @@
         <!-- Col 1: Gallery -->
         <div class="pdp-gallery-col">
             <div class="pdp-thumbnails">
-                <div class="pdp-thumb active"><%= product.category.icon %></div>
+                <div class="pdp-thumb active">
+                    <% if (product.image) { %>
+                        <img src="<%= product.image %>" alt="<%= product.name %>" style="width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-sm);">
+                    <% } else { %>
+                        <%= product.category.icon %>
+                    <% } %>
+                </div>
                 <div class="pdp-thumb" style="opacity:0.5"><%= product.category.icon %></div>
                 <div class="pdp-thumb" style="opacity:0.3"><%= product.category.icon %></div>
             </div>
             <div class="pdp-main-image">
-                <%= product.category.icon %>
+                <% if (product.image) { %>
+                    <img src="<%= product.image %>" alt="<%= product.name %>" style="width: 100%; height: 100%; object-fit: contain; border-radius: var(--radius-md);">
+                <% } else { %>
+                    <%= product.category.icon %>
+                <% } %>
             </div>
         </div>
 
@@ -365,9 +375,9 @@
 
             <div class="pdp-price-block">
                 <div class="price-large">
-                    <span class="price-symbol">$</span><%= product.price.toFixed(2) %>
+                    <span class="price-symbol">₹</span><%= product.price.toFixed(2) %>
                 </div>
-                <div class="mrp-text">M.R.P: $<%= (product.price * 1.2).toFixed(2) %> (Save 20%)</div>
+                <div class="mrp-text">M.R.P: ₹<%= (product.price * 1.2).toFixed(2) %> (Save 20%)</div>
                 <div style="font-size:14px; margin-top:8px;">Inclusive of all taxes</div>
             </div>
 
@@ -385,7 +395,7 @@
 
         <!-- Col 3: Buy Box -->
         <div class="pdp-buybox-col">
-            <div class="buybox-price">$<%= product.price.toFixed(2) %></div>
+            <div class="buybox-price">₹<%= product.price.toFixed(2) %></div>
             <div class="buybox-delivery">
                 FREE delivery <strong>Tomorrow, 8 AM - 12 PM</strong> on eligible orders.
             </div>
@@ -447,11 +457,15 @@
         <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
             <!-- Current Product -->
             <div style="width: 140px; text-align: center;">
-                <div style="width: 140px; height: 140px; background:#f8fafc; border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:60px; margin-bottom:12px; border:2px solid var(--primary);">
-                    <%= product.category.icon %>
+                <div style="width: 140px; height: 140px; background:#f8fafc; border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:60px; margin-bottom:12px; border:2px solid var(--primary); overflow: hidden;">
+                    <% if (product.image) { %>
+                        <img src="<%= product.image %>" alt="<%= product.name %>" style="width: 100%; height: 100%; object-fit: cover;">
+                    <% } else { %>
+                        <%= product.category.icon %>
+                    <% } %>
                 </div>
                 <div style="font-size:13px; font-weight:600; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"><%= product.title %></div>
-                <div style="color:var(--text-dark); font-weight:700; margin-top:4px;">$<%= product.price.toFixed(2) %></div>
+                <div style="color:var(--text-dark); font-weight:700; margin-top:4px;">₹<%= product.price.toFixed(2) %></div>
             </div>
             
             <div style="font-size: 30px; color: #cbd5e1;">+</div>
@@ -462,11 +476,11 @@
                     🛡️
                 </div>
                 <div style="font-size:13px; font-weight:600; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">Premium Care Kit</div>
-                <div style="color:var(--text-dark); font-weight:700; margin-top:4px;">$19.99</div>
+                <div style="color:var(--text-dark); font-weight:700; margin-top:4px;">₹19.99</div>
             </div>
 
             <div style="margin-left: auto; background:#f8fafc; padding:20px; border-radius:20px; display:flex; flex-direction:column; gap:12px; min-width: 250px;">
-                <div style="font-size:14px;">Total price: <span style="font-size:24px; font-weight:800; color:#ef4444;">$<%= (product.price + 19.99).toFixed(2) %></span></div>
+                <div style="font-size:14px;">Total price: <span style="font-size:24px; font-weight:800; color:#ef4444;">₹<%= (product.price + 19.99).toFixed(2) %></span></div>
                 <button class="btn-add" style="width:100%; margin:0;" onclick="alert('Added both items to cart!')">Add both to Cart</button>
             </div>
         </div>
@@ -641,7 +655,7 @@
                 
                 const toast = document.createElement("div");
                 toast.className = "toast";
-                toast.innerHTML = \`<div class="toast-icon">✓</div><div>Added <strong>\${qty}x \${title}</strong> to cart!</div>\`;
+                toast.innerHTML = `<div class="toast-icon">✓</div><div>Added <strong>${qty}x ${title}</strong> to cart!</div>`;
                 
                 toastContainer.appendChild(toast);
                 setTimeout(() => toast.classList.add("show"), 10);
@@ -672,7 +686,7 @@
                                 <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
                                     <span style="color:#eab308; font-size:14px;">★ ${p.ratings ? p.ratings.average : '0'}</span>
                                 </div>
-                                <div style="font-size:20px; font-weight:800; color:var(--primary);">$${p.price.toFixed(2)}</div>
+                                <div style="font-size:20px; font-weight:800; color:var(--primary);">₹${p.price.toFixed(2)}</div>
                             </a>
                         `).join('');
                         

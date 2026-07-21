@@ -106,7 +106,7 @@
                 type="text"
                 id="hero-search"
                 class="ai-search-input"
-                placeholder="e.g. 'Noise-cancelling headphones under $100'"
+                placeholder="e.g. 'Noise-cancelling headphones under ₹5,000'"
                 aria-label="Ask NeuraCart AI"
                 autocomplete="off"
             >
@@ -131,27 +131,27 @@
             <a href="#" class="section-see-all">View all →</a>
         </div>
         <div class="categories-grid">
-            <a href="#" class="category-card">
+            <a href="/category/Tech" class="category-card">
                 <div class="category-icon">💻</div>
                 <div class="category-name">Tech</div>
             </a>
-            <a href="#" class="category-card">
+            <a href="/category/Clothing" class="category-card">
                 <div class="category-icon">👕</div>
                 <div class="category-name">Clothing</div>
             </a>
-            <a href="#" class="category-card">
+            <a href="/category/Home" class="category-card">
                 <div class="category-icon">🏡</div>
                 <div class="category-name">Home</div>
             </a>
-            <a href="#" class="category-card">
+            <a href="/category/Shoes" class="category-card">
                 <div class="category-icon">👟</div>
                 <div class="category-name">Shoes</div>
             </a>
-            <a href="#" class="category-card">
+            <a href="/category/Books" class="category-card">
                 <div class="category-icon">📚</div>
                 <div class="category-name">Books</div>
             </a>
-            <a href="#" class="category-card">
+            <a href="/category/Toys" class="category-card">
                 <div class="category-icon">🧸</div>
                 <div class="category-name">Toys</div>
             </a>
@@ -172,14 +172,18 @@
                             <span class="product-badge">Hot</span>
                         <% } %>
                         <button class="product-wishlist" aria-label="Add to wishlist" onclick="event.preventDefault();">♡</button>
-                        <div class="product-image">
-                            <%= product.category.icon %>
+                        <div class="product-image" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                            <% if (product.image) { %>
+                                <img src="<%= product.image %>" alt="<%= product.name %>" style="width: 100%; height: 100%; object-fit: cover;">
+                            <% } else { %>
+                                <%= product.category.icon %>
+                            <% } %>
                         </div>
                         <div class="product-info">
                             <span class="product-category-tag"><%= product.category.name %></span>
                             <h3 class="product-title"><%= product.title %></h3>
                             <div class="product-meta">
-                                <span class="product-price">$<%= product.price.toFixed(2) %></span>
+                                <span class="product-price">₹<%= product.price.toFixed(2) %></span>
                                 <span class="product-rating">★ <%= product.ratings.average %></span>
                             </div>
                             <button class="btn-add-cart" onclick="event.preventDefault();">
@@ -211,7 +215,7 @@
         <div class="testimonial-inner">
             <div class="testimonial-card">
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"I just told it 'a birthday gift for my tech-obsessed brother under $150' and it found the perfect gadget in seconds. Absolutely mind-blowing."</p>
+                <p class="testimonial-text">"I just told it 'a birthday gift for my tech-obsessed brother under ₹10,000' and it found the perfect gadget in seconds. Absolutely mind-blowing."</p>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar">👨‍💻</div>
                     <div>

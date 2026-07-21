@@ -26,7 +26,7 @@ app.use(helmet({
             scriptSrc:   ["'self'"],
             styleSrc:    ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc:     ["'self'", "https://fonts.gstatic.com"],
-            imgSrc:      ["'self'", "data:", "blob:"],
+            imgSrc:      ["'self'", "data:", "blob:", "https://images.unsplash.com"],
             connectSrc:  ["'self'"],
             objectSrc:   ["'none'"],
             upgradeInsecureRequests: [],
@@ -80,8 +80,10 @@ app.set("layout", "layouts/main");
 // Routes
 const authRoutes = require("./routes/auth.routes");
 const productRoutes = require("./routes/product.routes");
+const categoryRoutes = require("./routes/category.routes");
 app.use("/auth", authRoutes);
 app.use("/api/products", productRoutes);
+app.use("/category", categoryRoutes);
 
 
 const Product = require("./models/Product");
