@@ -67,6 +67,30 @@ const productSchema = new mongoose.Schema({
     isFeatured: {
         type: Boolean,
         default: false
+    },
+    highlights: [{
+        type: String
+    }],
+    features: [{
+        icon: { type: String, default: '✨' },
+        title: { type: String, required: true },
+        description: { type: String, default: '' }
+    }],
+    delivery: {
+        type: String,
+        default: 'Standard delivery in 3–5 business days'
+    },
+    warranty: {
+        type: String,
+        default: '1 Year Manufacturer Warranty'
+    },
+    emi: {
+        type: String,
+        default: 'EMI options available at checkout'
+    },
+    returnPolicy: {
+        type: String,
+        default: '7-day easy returns'
     }
 }, {
     timestamps: true

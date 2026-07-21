@@ -76,7 +76,25 @@ const seedDB = async () => {
                     { key: 'Display Size', value: '16.2-inch' }
                 ],
                 ratings: { average: 4.9, count: 48 },
-                isFeatured: true
+                isFeatured: true,
+                highlights: [
+                    'Neura M4 Octa-Core Processor',
+                    '32GB Unified Memory',
+                    '1TB Superfast SSD',
+                    '16.2-inch Liquid Retina XDR Display',
+                    '22-Hour Battery Life',
+                    'Studio-Quality 6-Speaker Audio System'
+                ],
+                features: [
+                    { icon: '⚡', title: 'Lightning Fast', description: 'Unmatched M4 Performance' },
+                    { icon: '🛡️', title: 'Premium Build', description: 'CNC Aluminium Chassis' },
+                    { icon: '🔋', title: '22hr Battery Life', description: 'Work Without Limits' },
+                    { icon: '🖥️', title: 'XDR Display', description: '1600 nits Peak Brightness' }
+                ],
+                delivery: 'Free express delivery by Tomorrow',
+                warranty: '1 Year Apple-Equivalent Brand Warranty',
+                emi: 'No-cost EMI from ₹1,666/month on 12 months',
+                returnPolicy: '10-day easy returns, no questions asked'
             },
             {
                 name: 'Aurora Sound ANC Buds',
@@ -104,7 +122,25 @@ const seedDB = async () => {
                     { key: 'Weight', value: '4.5g per earbud' }
                 ],
                 ratings: { average: 4.8, count: 124 },
-                isFeatured: true
+                isFeatured: true,
+                highlights: [
+                    'Industry-Leading Active Noise Cancellation',
+                    '30-Hour Total Battery Life with Case',
+                    'Bluetooth 5.3 with Multipoint Connect',
+                    'IPX4 Water Resistance Rating',
+                    'Customizable EQ via Aurora App',
+                    'Dual-Beamforming Crystal-Clear Mics'
+                ],
+                features: [
+                    { icon: '🎧', title: 'Deep ANC', description: 'Pure Silence Mode' },
+                    { icon: '🔋', title: '30hr Battery', description: 'All-Day Listening' },
+                    { icon: '💧', title: 'IPX4 Rated', description: 'Sweat & Rain Proof' },
+                    { icon: '📱', title: 'App Control', description: 'Custom EQ Settings' }
+                ],
+                delivery: 'Free delivery within 2 business days',
+                warranty: '1 Year Manufacturer Warranty',
+                emi: 'No-cost EMI from ₹108/month on 12 months',
+                returnPolicy: '7-day easy returns'
             },
             {
                 name: 'Horizon 34" UltraWide Monitor',
@@ -132,7 +168,25 @@ const seedDB = async () => {
                     { key: 'Inputs', value: '1x USB-C, 2x HDMI, 1x DP' }
                 ],
                 ratings: { average: 4.5, count: 32 },
-                isFeatured: false
+                isFeatured: false,
+                highlights: [
+                    '34-inch Curved QHD UltraWide Panel',
+                    '144Hz Smooth Gaming Refresh Rate',
+                    'AMD FreeSync Premium Support',
+                    'HDR400 High Dynamic Range',
+                    'USB-C 65W Power Delivery',
+                    'Height & Tilt Adjustable Stand'
+                ],
+                features: [
+                    { icon: '🖥️', title: 'Curved UltraWide', description: '21:9 Immersive View' },
+                    { icon: '⚡', title: '144Hz Refresh', description: 'Buttery Smooth Gaming' },
+                    { icon: '🎨', title: 'HDR400', description: 'Vivid Colors & Contrast' },
+                    { icon: '🔌', title: 'USB-C 65W', description: 'Single Cable Setup' }
+                ],
+                delivery: 'Free delivery in 3–5 business days',
+                warranty: '3 Year Panel Warranty',
+                emi: 'No-cost EMI from ₹416/month on 12 months',
+                returnPolicy: '10-day easy returns'
             },
             // CLOTHING
             {
@@ -160,7 +214,25 @@ const seedDB = async () => {
                     { key: 'Care Instructions', value: 'Machine wash warm, tumble dry low' }
                 ],
                 ratings: { average: 4.4, count: 64 },
-                isFeatured: false
+                isFeatured: false,
+                highlights: [
+                    '100% Premium Long-Staple Oxford Cotton',
+                    'Breathable & Gets Softer with Every Wash',
+                    'Modern Tailored Slim Fit',
+                    'Button-Down Classic Collar',
+                    'Easy Iron Wrinkle-Resistant Finish',
+                    'Machine Washable — Warm Cycle Safe'
+                ],
+                features: [
+                    { icon: '👕', title: 'Oxford Cotton', description: 'Premium Feel' },
+                    { icon: '🌬️', title: 'Breathable', description: 'All-Day Comfort' },
+                    { icon: '🧺', title: 'Easy Care', description: 'Machine Washable' },
+                    { icon: '✂️', title: 'Tailored Fit', description: 'Modern Silhouette' }
+                ],
+                delivery: 'Free delivery in 2–4 business days',
+                warranty: 'Manufacturer quality guarantee',
+                emi: 'No EMI required — affordable at ₹45',
+                returnPolicy: '14-day easy returns'
             },
             {
                 name: 'Flex-Fit Stretch Chinos',
@@ -187,7 +259,25 @@ const seedDB = async () => {
                     { key: 'Fit', value: 'Slim Straight' }
                 ],
                 ratings: { average: 4.6, count: 92 },
-                isFeatured: true
+                isFeatured: true,
+                highlights: [
+                    '4-Way Stretch High-Performance Fabric',
+                    'Hidden Elasticated Waistband — 2" Stretch',
+                    'Smart Casual Design for Office & Dinner',
+                    'Wrinkle-Resistant Double-Stitched Seams',
+                    'Two Buttoned Back Pockets',
+                    'Slim Straight Versatile Cut'
+                ],
+                features: [
+                    { icon: '🏃', title: '4-Way Stretch', description: 'Full Range of Motion' },
+                    { icon: '👔', title: 'Smart Casual', description: 'Office to Evening' },
+                    { icon: '✨', title: 'Wrinkle-Free', description: 'All-Day Fresh Look' },
+                    { icon: '🎯', title: 'Slim Straight', description: 'Flattering Silhouette' }
+                ],
+                delivery: 'Free delivery in 2–4 business days',
+                warranty: 'Brand quality guarantee',
+                emi: 'No EMI required',
+                returnPolicy: '14-day easy returns'
             },
             {
                 name: 'WeatherShield Windbreaker',
@@ -214,7 +304,25 @@ const seedDB = async () => {
                     { key: 'Pockets', value: '3 zipped pockets' }
                 ],
                 ratings: { average: 4.7, count: 58 },
-                isFeatured: false
+                isFeatured: false,
+                highlights: [
+                    'Wind & Water Resistant DWR Shell Fabric',
+                    'Packable into Own Chest Pocket',
+                    'Adjustable Drawcord Hem',
+                    'Two Zippered Hand Pockets',
+                    'Weighs Only 198g (7oz)',
+                    'Breathable Mesh Lining'
+                ],
+                features: [
+                    { icon: '🌧️', title: 'Weather Shield', description: 'Wind & Rain Resistant' },
+                    { icon: '🎒', title: 'Packable', description: 'Fits in its Own Pocket' },
+                    { icon: '⚖️', title: 'Ultralight', description: 'Only 198g Weight' },
+                    { icon: '🌬️', title: 'Breathable', description: 'Mesh Lining Inside' }
+                ],
+                delivery: 'Free delivery in 2–4 business days',
+                warranty: '2 Year Brand Warranty',
+                emi: 'No EMI required',
+                returnPolicy: '14-day easy returns'
             },
             // HOME
             {

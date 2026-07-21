@@ -55,13 +55,32 @@
     if (navbar) {
         window.addEventListener('scroll', function () {
             if (window.scrollY > 12) {
-                navbar.style.background = 'rgba(255,255,255,0.97)';
-                navbar.style.boxShadow = '0 4px 32px rgba(0,0,0,0.10)';
+                navbar.classList.add('scrolled');
             } else {
-                navbar.style.background = '';
-                navbar.style.boxShadow = '';
+                navbar.classList.remove('scrolled');
             }
         }, { passive: true });
+    }
+
+    /* --------------------------------------------------
+       2b. CTA BUTTON RIPPLE
+       -------------------------------------------------- */
+    var ctaBtn = document.getElementById('nc-cta-btn');
+    if (ctaBtn) {
+        ctaBtn.addEventListener('click', function (e) {
+            var ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            var rect = ctaBtn.getBoundingClientRect();
+            var size = Math.max(rect.width, rect.height);
+            ripple.style.cssText = [
+                'width:' + size + 'px',
+                'height:' + size + 'px',
+                'left:' + (e.clientX - rect.left - size / 2) + 'px',
+                'top:' + (e.clientY - rect.top  - size / 2) + 'px'
+            ].join(';');
+            ctaBtn.appendChild(ripple);
+            setTimeout(function () { ripple.remove(); }, 600);
+        });
     }
 
     /* --------------------------------------------------
@@ -174,6 +193,33 @@
                 clone.style.color  = filled ? '' : '#e11d48';
                 clone.style.background = filled ? 'rgba(255,255,255,.88)' : 'white';
             });
+        });
+    }
+
+    /* --------------------------------------------------
+       5. DARK MODE TOGGLE
+       -------------------------------------------------- */
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const darkModeIcon   = document.getElementById('darkModeIcon');
+
+    if (darkModeToggle) {
+        const updateIcon = (theme) => {
+            if (darkModeIcon) {
+                darkModeIcon.className = theme === 'dark'
+                    ? 'bi bi-sun-fill'
+                    : 'bi bi-moon-stars-fill';
+            }
+        };
+
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        updateIcon(currentTheme);
+
+        darkModeToggle.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateIcon(next);
         });
     }
 
