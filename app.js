@@ -87,6 +87,49 @@ app.use("/category", categoryRoutes);
 
 
 const Product = require("./models/Product");
+const Category = require("./models/Category");
+
+app.get('/shop', async (req, res, next) => {
+    try {
+        const { category, q, sort } = req.query;
+        const categories = await Category.find().sort({ name: 1 });
+        const query = {};
+
+        if (category) {
+            const selectedCategory = categories.find(item => item.slug === category);
+            if (selectedCategory) {
+                query.category = selectedCategory._id;
+            }
+        }
+
+        if (q) {
+            const escapedQuery = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const searchPattern = new RegExp(escapedQuery, 'i');
+            query.$or = [
+                { name: searchPattern },
+                { title: searchPattern },
+                { description: searchPattern },
+                { aiTags: searchPattern }
+            ];
+        }
+
+        let sortOption = { isFeatured: -1, createdAt: -1 };
+        if (sort === 'price-low') sortOption = { price: 1 };
+        if (sort === 'price-high') sortOption = { price: -1 };
+
+        const products = await Product.find(query).populate('category').sort(sortOption);
+        res.render('shop', {
+            title: 'Shop - NeuraCart',
+            products,
+            categories,
+            activeCategory: category || '',
+            activeSort: sort || 'popular',
+            searchQuery: q || ''
+        });
+    } catch (error) {
+        next(error);
+    }
+});
 
 // Render Homepage
 app.get('/', async (req, res) => {

@@ -1,0 +1,43 @@
+<div class="shop-page">
+    <nav class="navbar" id="navbar">
+        <a href="/" class="nav-logo"><img src="/images/favicon.png" alt="NeuraCart logo"><span class="nav-logo-name">NeuraCart</span><span class="nav-logo-beta">Beta</span></a>
+        <div class="nav-middle">
+            <form class="nav-search-wrap" action="/shop" method="GET">
+                <div class="nav-search-icon-sm" aria-hidden="true">⌕</div>
+                <input class="nav-search-input-sm" type="search" name="q" value="<%= searchQuery %>" placeholder="Search products..." aria-label="Search products">
+                <button class="nav-search-submit" type="submit" aria-label="Submit search">›</button>
+            </form>
+            <div class="nav-sep"></div>
+            <div class="nav-links-row"><a class="is-active" href="/shop">Shop</a><a href="#">Deals</a><a href="#">AI Picks</a></div>
+        </div>
+        <div class="nav-right"><a href="/auth/login" class="nav-login">Log In</a><a href="/auth/register" class="nav-signup">Get Started</a><button class="nav-hamburger" id="hamburger-btn" aria-label="Toggle menu" aria-expanded="false"><span></span><span></span><span></span></button></div>
+    </nav>
+
+    <div class="nav-mobile-menu" id="mobile-menu"><a href="/shop"><span>🛍️</span> Shop</a><a href="/auth/login">Log In</a><a href="/auth/register">Get Started</a></div>
+
+    <section class="shop-categories" aria-label="Shop categories">
+        <a href="/shop" class="shop-category <%= !activeCategory ? 'active' : '' %>"><span class="shop-category-icon">✨</span><span>For You</span></a>
+        <% categories.forEach(category => { %>
+            <a href="/shop?category=<%= category.slug %>" class="shop-category <%= activeCategory === category.slug ? 'active' : '' %>"><span class="shop-category-icon"><%= category.icon %></span><span><%= category.name %></span></a>
+        <% }) %>
+    </section>
+
+    <main class="shop-content">
+        <aside class="shop-filters">
+            <h2>Filters</h2>
+            <div class="filter-section"><h3>Categories</h3>
+                <a class="filter-link <%= !activeCategory ? 'selected' : '' %>" href="/shop">All products</a>
+                <% categories.forEach(category => { %><a class="filter-link <%= activeCategory === category.slug ? 'selected' : '' %>" href="/shop?category=<%= category.slug %>"><span><%= category.icon %></span> <%= category.name %></a><% }) %>
+            </div>
+            <div class="filter-section"><h3>Price</h3><a class="filter-link" href="/shop?sort=price-low">Low to high</a><a class="filter-link" href="/shop?sort=price-high">High to low</a></div>
+        </aside>
+
+        <section class="catalogue">
+            <div class="catalogue-heading"><div><p class="breadcrumbs">Home <span>›</span> Shop</p><h1><%= activeCategory ? categories.find(c => c.slug === activeCategory)?.name || 'Shop' : 'Discover products' %> <span>(<%= products.length %> products)</span></h1></div></div>
+            <div class="sort-bar"><strong>Sort by</strong><a class="<%= activeSort === 'popular' ? 'active' : '' %>" href="/shop?<%= activeCategory ? 'category=' + activeCategory + '&' : '' %>sort=popular">Popularity</a><a class="<%= activeSort === 'price-low' ? 'active' : '' %>" href="/shop?<%= activeCategory ? 'category=' + activeCategory + '&' : '' %>sort=price-low">Price: Low to High</a><a class="<%= activeSort === 'price-high' ? 'active' : '' %>" href="/shop?<%= activeCategory ? 'category=' + activeCategory + '&' : '' %>sort=price-high">Price: High to Low</a></div>
+            <% if (products.length) { %><div class="catalogue-grid"><% products.forEach(product => { %>
+                <a href="/product/<%= product._id %>" class="catalogue-card"><button class="catalogue-heart" aria-label="Save <%= product.title %>">♡</button><div class="catalogue-image"><span><%= product.category?.icon || '📦' %></span></div><div class="catalogue-info"><p class="catalogue-brand"><%= product.brand || 'NeuraCart' %></p><h2><%= product.title %></h2><p class="catalogue-description"><%= product.description %></p><div><span class="catalogue-rating">★ <%= product.ratings.average %></span><span class="rating-count">(<%= product.ratings.count %>)</span></div><p class="catalogue-price">$<%= product.price.toFixed(2) %></p><p class="catalogue-stock <%= product.stock < 10 ? 'low' : '' %>"><%= product.stock < 10 ? 'Only a few left' : 'In stock' %></p></div></a>
+            <% }) %></div><% } else { %><div class="catalogue-empty"><div>🔎</div><h2>No products found</h2><p>Try a different category or search term.</p><a href="/shop">View all products</a></div><% } %>
+        </section>
+    </main>
+</div>
