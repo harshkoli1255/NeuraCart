@@ -1,560 +1,3 @@
-<style>
-/* ============================================================
-   NeuraCart Navbar — Pixel-matched to reference image
-   Inter font | #7C3AED accent | 72px height | 1280px max-width
-   ============================================================ */
-
-.nc-nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 72px;
-    background: #ffffff;
-    border-bottom: 1px solid #F1F1F5;
-    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
-    z-index: 1050;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    transition: box-shadow 0.3s ease;
-}
-.nc-nav.scrolled {
-    box-shadow: 0 2px 24px rgba(0,0,0,0.08);
-}
-
-body { padding-top: 72px !important; }
-
-/* Inner wrapper */
-.nc-inner {
-    max-width: 1280px;
-    margin: 0 auto;
-    height: 100%;
-    padding: 0 32px;
-    display: flex;
-    align-items: center;
-    gap: 0;
-}
-
-/* ============================================================
-   LEFT — Logo block
-   ============================================================ */
-.nc-logo {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    text-decoration: none;
-    flex-shrink: 0;
-    margin-right: 28px;
-    transition: opacity 0.2s;
-}
-.nc-logo:hover { opacity: 0.82; }
-
-.nc-logo-icon {
-    width: 38px;
-    height: 38px;
-    background: #ffffff;
-    border: 1px solid #e8e4f5;
-    border-radius: 11px;
-    box-shadow: 0 2px 8px rgba(124,58,237,0.10), 0 1px 3px rgba(0,0,0,0.06);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: box-shadow 0.2s, transform 0.2s;
-}
-.nc-logo:hover .nc-logo-icon {
-    box-shadow: 0 4px 14px rgba(124,58,237,0.16), 0 1px 4px rgba(0,0,0,0.08);
-    transform: translateY(-1px);
-}
-
-.nc-logo-wordmark {
-    font-size: 18px;
-    font-weight: 700;
-    color: #7c3aed;
-    letter-spacing: -0.3px;
-    white-space: nowrap;
-}
-
-.nc-beta {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #ffffff;
-    background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
-    border-radius: 6px;
-    padding: 3px 8px;
-    align-self: center;
-    margin-top: 1px;
-    flex-shrink: 0;
-}
-
-/* ============================================================
-   CENTER — Search + Nav Links (grouped together)
-   ============================================================ */
-.nc-center {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    flex: 1;
-    justify-content: center;
-}
-
-/* Search bar */
-.nc-search-form {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    max-width: 400px;
-    flex-shrink: 0;
-}
-
-.nc-search-box {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    height: 44px;
-    background: #F8F7FC;
-    border: 1.5px solid #EBEBF5;
-    border-radius: 100px;
-    padding: 0 5px 0 16px;
-    gap: 8px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-.nc-search-box:focus-within {
-    background: #fff;
-    border-color: #a78bfa;
-    box-shadow: 0 0 0 3px rgba(124,58,237,0.10);
-}
-
-.nc-search-icon {
-    color: #9ca3af;
-    font-size: 14px;
-    flex-shrink: 0;
-    transition: color 0.2s;
-}
-.nc-search-box:focus-within .nc-search-icon { color: #7c3aed; }
-
-.nc-search-input {
-    flex: 1;
-    border: none;
-    background: transparent;
-    outline: none;
-    font-size: 14px;
-    font-family: inherit;
-    color: #18181b;
-    caret-color: #7c3aed;
-    min-width: 0;
-}
-.nc-search-input::placeholder { color: #a1a1aa; }
-
-.nc-search-btn {
-    width: 34px;
-    height: 34px;
-    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 800;
-    flex-shrink: 0;
-    transition: transform 0.18s ease, opacity 0.18s ease;
-}
-.nc-search-btn:hover {
-    opacity: 0.9;
-    transform: scale(1.06);
-}
-
-/* Nav links */
-.nc-links {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-}
-
-.nc-link {
-    position: relative;
-    font-size: 15px;
-    font-weight: 500;
-    color: #52525b;
-    text-decoration: none;
-    padding: 6px 14px;
-    border-radius: 8px;
-    white-space: nowrap;
-    transition: color 0.18s ease, background 0.18s ease;
-}
-.nc-link::after {
-    content: '';
-    position: absolute;
-    bottom: 1px; left: 14px; right: 14px;
-    height: 2px;
-    background: #7c3aed;
-    border-radius: 2px;
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.2s ease;
-}
-.nc-link:hover {
-    color: #7c3aed;
-    background: #F3F0FF;
-}
-.nc-link:hover::after { transform: scaleX(1); }
-.nc-link.active { color: #7c3aed; font-weight: 600; }
-.nc-link.active::after { transform: scaleX(1); }
-
-/* ============================================================
-   RIGHT — Cart, Login, CTA
-   ============================================================ */
-.nc-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-    margin-left: 28px;
-}
-
-.nc-cart {
-    position: relative;
-    width: 42px;
-    height: 42px;
-    background: #F8F7FC;
-    border: 1.5px solid #EBEBF5;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    color: #3f3f46;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-.nc-cart:hover {
-    border-color: #c4b5fd;
-    background: #F3F0FF;
-    color: #7c3aed;
-    transform: translateY(-1px);
-}
-.nc-cart-svg {
-    transition: stroke 0.2s ease;
-}
-.nc-cart:hover .nc-cart-svg {
-    stroke: #7c3aed;
-}
-
-.nc-cart-badge {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    min-width: 18px;
-    height: 18px;
-    background: linear-gradient(135deg, #7c3aed, #a855f7);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    font-family: inherit;
-    border-radius: 100px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 4px;
-    border: 2px solid #fff;
-    line-height: 1;
-    animation: badgePop 0.3s cubic-bezier(0.34,1.56,0.64,1);
-}
-
-@keyframes badgePop {
-    from { transform: scale(0.6); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
-}
-
-.nc-nav-divider {
-    width: 1px;
-    height: 24px;
-    background: #e4e4e7;
-    margin: 0 4px;
-    flex-shrink: 0;
-}
-
-/* Login text link */
-.nc-login {
-    font-size: 15px;
-    font-weight: 600;
-    color: #3f3f46;
-    text-decoration: none;
-    padding: 10px 14px;
-    border-radius: 8px;
-    transition: color 0.18s ease, background 0.18s ease;
-    white-space: nowrap;
-}
-.nc-login:hover { color: #7c3aed; background: #F3F0FF; }
-
-/* Get Started CTA */
-.nc-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: inherit;
-    color: #fff;
-    background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
-    border: none;
-    border-radius: 9999px;
-    padding: 0 22px;
-    height: 44px;
-    text-decoration: none;
-    cursor: pointer;
-    white-space: nowrap;
-    box-shadow: 0 4px 14px rgba(124,58,237,0.30);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-.nc-cta::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255,255,255,0);
-    transition: background 0.2s;
-    border-radius: inherit;
-}
-.nc-cta:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(124,58,237,0.40);
-    color: #fff;
-}
-.nc-cta:hover::after { background: rgba(255,255,255,0.08); }
-.nc-cta:active { transform: translateY(0); }
-
-/* Ripple */
-.nc-cta .ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.35);
-    transform: scale(0);
-    animation: ripple 0.5s linear;
-    pointer-events: none;
-}
-@keyframes ripple {
-    to { transform: scale(4); opacity: 0; }
-}
-
-/* Dark mode toggle (hidden on reference image but kept functional) */
-.nc-dark-toggle {
-    width: 42px;
-    height: 42px;
-    background: #F8F7FC;
-    border: 1.5px solid #EBEBF5;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    cursor: pointer;
-    color: #52525b;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-.nc-dark-toggle:hover {
-    border-color: #fde68a;
-    background: #fffbeb;
-    color: #b45309;
-}
-
-/* ============================================================
-   HAMBURGER
-   ============================================================ */
-.nc-hamburger {
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 5px;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    border-radius: 10px;
-    transition: background 0.18s;
-    flex-shrink: 0;
-}
-.nc-hamburger:hover { background: #f4f4f5; }
-
-.nc-hbar {
-    display: block;
-    width: 22px;
-    height: 2px;
-    background: #3f3f46;
-    border-radius: 2px;
-    transition: transform 0.28s ease, opacity 0.2s ease;
-    transform-origin: center;
-}
-.nc-hamburger.open .nc-hbar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.nc-hamburger.open .nc-hbar:nth-child(2) { opacity: 0; transform: scaleX(0); }
-.nc-hamburger.open .nc-hbar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
-/* ============================================================
-   MOBILE DRAWER
-   ============================================================ */
-.nc-drawer {
-    position: fixed;
-    top: 72px; left: 0; right: 0; bottom: 0;
-    background: #fff;
-    z-index: 1049;
-    padding: 20px 20px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    overflow-y: auto;
-    transform: translateX(100%);
-    opacity: 0;
-    pointer-events: none;
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
-}
-.nc-drawer.open {
-    transform: translateX(0);
-    opacity: 1;
-    pointer-events: auto;
-}
-
-/* Mobile search */
-.nc-drawer-search {
-    display: flex;
-    align-items: center;
-    height: 46px;
-    background: #F8F7FC;
-    border: 1.5px solid #EBEBF5;
-    border-radius: 14px;
-    padding: 0 8px 0 14px;
-    gap: 8px;
-    margin-bottom: 12px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-.nc-drawer-search:focus-within {
-    border-color: #a78bfa;
-    box-shadow: 0 0 0 3px rgba(124,58,237,0.10);
-    background: #fff;
-}
-.nc-drawer-search input {
-    flex: 1; border: none; background: transparent;
-    outline: none; font-size: 14px; font-family: inherit; color: #18181b;
-}
-.nc-drawer-search input::placeholder { color: #a1a1aa; }
-.nc-drawer-search button {
-    width: 32px; height: 32px;
-    background: #7c3aed; border: none; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; color: #fff; font-size: 13px; flex-shrink: 0;
-}
-
-.nc-drawer-link {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 15px;
-    font-weight: 500;
-    color: #18181b;
-    text-decoration: none;
-    padding: 13px 12px;
-    border-radius: 12px;
-    transition: background 0.16s ease, color 0.16s ease;
-}
-.nc-drawer-link:hover { background: #F3F0FF; color: #7c3aed; }
-
-.nc-drawer-icon {
-    width: 34px; height: 34px;
-    background: #f4f4f5;
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px;
-    transition: background 0.16s;
-}
-.nc-drawer-link:hover .nc-drawer-icon { background: #ede9fe; }
-
-.nc-drawer-sep { height: 1px; background: #f4f4f5; border: none; margin: 8px 0; }
-
-.nc-drawer-auth {
-    display: flex; gap: 10px; margin-top: 8px;
-}
-.nc-drawer-auth a {
-    flex: 1; text-align: center;
-    padding: 13px; border-radius: 14px;
-    font-size: 14px; font-weight: 600;
-    text-decoration: none; transition: all 0.18s;
-}
-.nc-drawer-login {
-    color: #3f3f46;
-    border: 1.5px solid #e4e4e7;
-    background: #fff;
-}
-.nc-drawer-login:hover { border-color: #7c3aed; color: #7c3aed; }
-.nc-drawer-signup {
-    color: #fff;
-    background: linear-gradient(135deg, #7c3aed, #9333ea);
-    box-shadow: 0 4px 14px rgba(124,58,237,0.28);
-}
-.nc-drawer-signup:hover { box-shadow: 0 6px 20px rgba(124,58,237,0.38); color: #fff; }
-
-/* ============================================================
-   DARK MODE
-   ============================================================ */
-html[data-theme="dark"] .nc-nav {
-    background: #0a0a0f;
-    border-bottom-color: rgba(255,255,255,0.07);
-    box-shadow: 0 1px 16px rgba(0,0,0,0.4);
-}
-html[data-theme="dark"] .nc-logo-wordmark { color: #fafafa; }
-html[data-theme="dark"] .nc-logo-icon { background: rgba(124,58,237,0.2); }
-html[data-theme="dark"] .nc-search-box { background: #18181b; border-color: #27272a; }
-html[data-theme="dark"] .nc-search-box:focus-within { background: #111113; }
-html[data-theme="dark"] .nc-search-input { color: #fafafa; }
-html[data-theme="dark"] .nc-link { color: #a1a1aa; }
-html[data-theme="dark"] .nc-link:hover,
-html[data-theme="dark"] .nc-link.active { color: #a78bfa; background: rgba(167,139,250,0.09); }
-html[data-theme="dark"] .nc-cart { background: #18181b; border-color: #27272a; color: #d4d4d8; }
-html[data-theme="dark"] .nc-cart:hover { border-color: #7c3aed; background: rgba(124,58,237,0.12); color: #a78bfa; }
-html[data-theme="dark"] .nc-dark-toggle { background: #18181b; border-color: #27272a; color: #d4d4d8; }
-html[data-theme="dark"] .nc-login { color: #a1a1aa; }
-html[data-theme="dark"] .nc-login:hover { color: #a78bfa; background: rgba(167,139,250,0.09); }
-html[data-theme="dark"] .nc-drawer { background: #0a0a0f; }
-html[data-theme="dark"] .nc-drawer-link { color: #fafafa; }
-html[data-theme="dark"] .nc-drawer-link:hover { background: rgba(167,139,250,0.10); color: #a78bfa; }
-html[data-theme="dark"] .nc-drawer-icon { background: #18181b; }
-html[data-theme="dark"] .nc-drawer-sep { background: #18181b; }
-html[data-theme="dark"] .nc-drawer-search { background: #18181b; border-color: #27272a; }
-html[data-theme="dark"] .nc-drawer-search input { color: #fafafa; }
-html[data-theme="dark"] .nc-drawer-login { background: #18181b; border-color: #27272a; color: #d4d4d8; }
-html[data-theme="dark"] .nc-hbar { background: #d4d4d8; }
-html[data-theme="dark"] .nc-hamburger:hover { background: #18181b; }
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-@media (max-width: 1024px) {
-    .nc-links { display: none; }
-    .nc-search-form { max-width: 300px; }
-}
-
-@media (max-width: 768px) {
-    .nc-search-form { display: none; }
-    .nc-hamburger { display: flex; }
-    .nc-login,
-    .nc-cta,
-    .nc-dark-toggle { display: none; }
-    .nc-right { gap: 8px; }
-}
-
-@media (max-width: 480px) {
-    .nc-inner { padding: 0 16px; }
-    .nc-logo { margin-right: 0; }
-    .nc-beta { display: none; }
-}
-</style>
-
 <!-- ============================== NAVBAR ============================== -->
 <nav class="nc-nav" id="navbar" role="navigation" aria-label="Main navigation">
     <div class="nc-inner">
@@ -563,31 +6,29 @@ html[data-theme="dark"] .nc-hamburger:hover { background: #18181b; }
         <a href="/" class="nc-logo" aria-label="NeuraCart home">
             <!-- Neural cart SVG icon in white rounded square -->
             <div class="nc-logo-icon">
-                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Neural connections (left-side brain cluster) -->
-                    <line x1="8" y1="8" x2="12" y2="5" stroke="#818cf8" stroke-width="1.2"/>
-                    <line x1="8" y1="8" x2="6" y2="12" stroke="#818cf8" stroke-width="1.2"/>
-                    <line x1="12" y1="5" x2="14" y2="10" stroke="#818cf8" stroke-width="1.2"/>
-                    <line x1="6" y1="12" x2="11" y2="14" stroke="#818cf8" stroke-width="1.2"/>
-                    <line x1="14" y1="10" x2="11" y2="14" stroke="#818cf8" stroke-width="1.2"/>
-                    <line x1="11" y1="14" x2="14" y2="10" stroke="#818cf8" stroke-width="1.2"/>
-                    <line x1="8" y1="8" x2="11" y2="14" stroke="#818cf8" stroke-width="1.2"/>
-                    <line x1="11" y1="14" x2="14" y2="15" stroke="#14b8a6" stroke-width="1.2"/> <!-- Connected to cart -->
+                <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Neural connections -->
+                    <line x1="8" y1="8" x2="12" y2="5" stroke="#a78bfa" stroke-width="1.2"/>
+                    <line x1="8" y1="8" x2="6" y2="12" stroke="#a78bfa" stroke-width="1.2"/>
+                    <line x1="12" y1="5" x2="14" y2="10" stroke="#a78bfa" stroke-width="1.2"/>
+                    <line x1="6" y1="12" x2="11" y2="14" stroke="#a78bfa" stroke-width="1.2"/>
+                    <line x1="14" y1="10" x2="11" y2="14" stroke="#a78bfa" stroke-width="1.2"/>
+                    <line x1="11" y1="14" x2="14" y2="15" stroke="#22d3ee" stroke-width="1.2"/>
 
                     <!-- Neural nodes -->
-                    <circle cx="8" cy="8" r="1.8" fill="#4338ca"/>
-                    <circle cx="12" cy="5" r="1.8" fill="#4338ca"/>
-                    <circle cx="6" cy="12" r="1.8" fill="#4338ca"/>
-                    <circle cx="14" cy="10" r="1.8" fill="#4338ca"/>
-                    <circle cx="11" cy="14" r="1.8" fill="#4338ca"/>
+                    <circle cx="8" cy="8" r="2" fill="#8b5cf6"/>
+                    <circle cx="12" cy="5" r="2" fill="#8b5cf6"/>
+                    <circle cx="6" cy="12" r="2" fill="#8b5cf6"/>
+                    <circle cx="14" cy="10" r="2" fill="#8b5cf6"/>
+                    <circle cx="11" cy="14" r="2" fill="#8b5cf6"/>
 
-                    <!-- Stylized Cart Basket (N shape in Teal) -->
-                    <path d="M12 16 L14 10 L18 16 L21 8" stroke="#14b8a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Stylized Cart Basket -->
+                    <path d="M12 16 L14 10 L18 16 L21 8" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     
                     <!-- Cart Base & Wheels -->
-                    <path d="M10 17 L18 17" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
-                    <circle cx="12" cy="20" r="2" fill="#475569"/>
-                    <circle cx="18" cy="20" r="2" fill="#475569"/>
+                    <path d="M10 17 L18 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <circle cx="12" cy="20" r="2" fill="currentColor"/>
+                    <circle cx="18" cy="20" r="2" fill="currentColor"/>
                 </svg>
             </div>
             <span class="nc-logo-wordmark">NeuraCart</span>
@@ -598,7 +39,7 @@ html[data-theme="dark"] .nc-hamburger:hover { background: #18181b; }
         <div class="nc-center">
             <form action="/shop" method="GET" class="nc-search-form" role="search">
                 <div class="nc-search-box">
-                    <i class="bi bi-search nc-search-icon"></i>
+                    <i class="fa-solid fa-magnifying-glass nc-search-icon"></i>
                     <input
                         type="text"
                         name="q"
@@ -609,7 +50,7 @@ html[data-theme="dark"] .nc-hamburger:hover { background: #18181b; }
                         value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>"
                     >
                     <button type="submit" class="nc-search-btn" aria-label="Search">
-                        <i class="bi bi-chevron-right" style="-webkit-text-stroke: 1px currentColor;"></i>
+                        <i class="fa-solid fa-chevron-right" style="-webkit-text-stroke: 1px currentColor;"></i>
                     </button>
                 </div>
             </form>
@@ -618,24 +59,25 @@ html[data-theme="dark"] .nc-hamburger:hover { background: #18181b; }
             <div class="nc-nav-divider"></div>
 
             <nav class="nc-links" aria-label="Site links">
-                <a href="/shop"    class="nc-link">Shop</a>
-                <a href="/deals"   class="nc-link">Deals</a>
-                <a href="/ai-picks" class="nc-link">AI Picks</a>
-
-                <!-- Cart icon next to AI Picks -->
-                <a href="/cart" class="nc-cart" aria-label="Shopping cart">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nc-cart-svg">
-                        <circle cx="9" cy="21" r="1"/>
-                        <circle cx="20" cy="21" r="1"/>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                    </svg>
-                    <span class="nc-cart-badge"><%= locals.cartCount || 0 %></span>
-                </a>
+                <a href="/shop"    class="nc-link <%= locals.path === '/shop' ? 'active' : '' %>">Shop</a>
+                <a href="/deals"   class="nc-link <%= locals.path === '/deals' ? 'active' : '' %>">Deals</a>
+                <a href="/ai-picks" class="nc-link <%= locals.path === '/ai-picks' ? 'active' : '' %>">AI Picks</a>
             </nav>
         </div>
 
         <!-- RIGHT: Cart, Dark Mode, Auth -->
         <div class="nc-right">
+
+            <!-- Dark Mode Toggle -->
+            <button class="nc-dark-toggle" aria-label="Toggle dark mode">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+
+            <!-- Cart -->
+            <a href="/cart" class="nc-cart" aria-label="Shopping cart">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span class="nc-cart-badge"><%= locals.cartCount || 0 %></span>
+            </a>
 
             <!-- Auth -->
             <% if (locals.user) { %>
@@ -643,19 +85,18 @@ html[data-theme="dark"] .nc-hamburger:hover { background: #18181b; }
                     <%= locals.user.name ? locals.user.name.split(' ')[0] : 'Account' %>
                 </a>
                 <a href="/auth/logout" class="nc-cta" id="nc-cta-btn">
-                    Log Out <span>→</span>
+                    Log Out <i class="fa-solid fa-arrow-right"></i>
                 </a>
             <% } else { %>
                 <a href="/auth/login" class="nc-login" id="nc-login-btn">Log In</a>
                 <a href="/auth/register" class="nc-cta" id="nc-cta-btn">
-                    Get Started <span>→</span>
+                    Get Started <i class="fa-solid fa-arrow-right"></i>
                 </a>
             <% } %>
 
             <!-- Hamburger (mobile only) -->
             <button
                 class="nc-hamburger"
-                id="hamburger-btn"
                 type="button"
                 aria-label="Open navigation menu"
                 aria-expanded="false"
@@ -674,40 +115,45 @@ html[data-theme="dark"] .nc-hamburger:hover { background: #18181b; }
 
     <!-- Search -->
     <form action="/shop" method="GET" class="nc-drawer-search" role="search">
-        <i class="bi bi-search" style="color:#a1a1aa; font-size:14px; flex-shrink:0;"></i>
+        <i class="fa-solid fa-magnifying-glass" style="color:var(--text-lo); font-size:14px; flex-shrink:0;"></i>
         <input type="text" name="q" placeholder="Search products..." autocomplete="off" aria-label="Search">
-        <button type="submit" aria-label="Search"><i class="bi bi-arrow-right"></i></button>
+        <button type="submit" aria-label="Search"><i class="fa-solid fa-arrow-right"></i></button>
     </form>
 
     <a href="/shop" class="nc-drawer-link">
-        <span class="nc-drawer-icon">🏪</span> Shop
+        <span class="nc-drawer-icon"><i class="fa-solid fa-shop"></i></span> Shop
     </a>
     <a href="/deals" class="nc-drawer-link">
-        <span class="nc-drawer-icon">🏷️</span> Deals
+        <span class="nc-drawer-icon"><i class="fa-solid fa-tags"></i></span> Deals
     </a>
     <a href="/ai-picks" class="nc-drawer-link">
-        <span class="nc-drawer-icon">✨</span> AI Picks
+        <span class="nc-drawer-icon"><i class="fa-solid fa-wand-magic-sparkles" style="color: var(--cyan)"></i></span> AI Picks
     </a>
 
     <hr class="nc-drawer-sep">
 
-    <a href="/cart" class="nc-drawer-link">
-        <span class="nc-drawer-icon">🛒</span>
-        Cart
-        <% if (locals.cartCount && locals.cartCount > 0) { %>
-            <span style="margin-left:auto;background:#2563eb;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;"><%= locals.cartCount %></span>
-        <% } %>
-    </a>
+    <div style="display:flex; gap: 8px; margin: 4px 0;">
+        <a href="/cart" class="nc-drawer-link" style="flex:1;">
+            <span class="nc-drawer-icon"><i class="fa-solid fa-cart-shopping"></i></span> Cart
+            <% if (locals.cartCount && locals.cartCount > 0) { %>
+                <span style="margin-left:auto;background:var(--grad-purple);color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;"><%= locals.cartCount %></span>
+            <% } %>
+        </a>
+        
+        <button class="nc-dark-toggle" style="width: auto; padding: 0 16px; flex-shrink: 0; background: var(--surface-2);" aria-label="Toggle dark mode">
+            <i class="fa-solid fa-moon"></i>
+        </button>
+    </div>
 
     <hr class="nc-drawer-sep">
 
     <% if (locals.user) { %>
         <a href="/auth/profile" class="nc-drawer-link">
-            <span class="nc-drawer-icon">👤</span>
+            <span class="nc-drawer-icon"><i class="fa-solid fa-user"></i></span>
             Hi, <%= locals.user.name ? locals.user.name.split(' ')[0] : 'Account' %>
         </a>
         <a href="/auth/logout" class="nc-drawer-link">
-            <span class="nc-drawer-icon">🚪</span> Log Out
+            <span class="nc-drawer-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Log Out
         </a>
     <% } else { %>
         <div class="nc-drawer-auth">

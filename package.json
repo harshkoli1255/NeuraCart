@@ -5,14 +5,17 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon server.js",
+    "migrate:images": "node scripts/migrate-product-images.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "type": "commonjs",
   "dependencies": {
+    "axios": "^1.18.1",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
     "compression": "^1.8.1",
+    "connect-flash": "^0.1.1",
     "connect-mongo": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

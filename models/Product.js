@@ -49,6 +49,17 @@ const productSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    variants: [{
+        sku: String,
+        color: String,
+        size: String,
+        stock: { type: Number, default: 0 },
+        priceAdjustment: { type: Number, default: 0 }
+    }],
+    embedding: {
+        type: [Number], // For NVIDIA NIM Vector Search
+        select: false // Exclude by default from normal queries to save bandwidth
+    },
     aiTags: [{
         type: String // Keywords for smart AI search (e.g., "audiophile", "noise-canceling", "bass")
     }],
@@ -126,6 +137,21 @@ productSchema.pre('validate', async function() {
             count: Math.floor(Math.random() * 100) + 20
         };
     }
+});
+
+productSchema.pre('save', async function(next) {
+    // Only generate new embeddings if title or description changed, or if it's new and has no embedding
+    if (this.isModified('title') || this.isModified('description') || (this.isNew && (!this.embedding || this.embedding.length === 0))) {
+        try {
+            const aiService = require('../services/ai.service');
+            const textToEmbed = `${this.title}. ${this.description}`;
+            this.embedding = await aiService.generateEmbedding(textToEmbed);
+        } catch (err) {
+            console.error("Failed to generate embedding in pre-save hook:", err);
+            // We don't block the save if AI fails, we just won't have an embedding.
+        }
+    }
+    next();
 });
 
 // Index for basic text search just in case we need a fallback from AI search

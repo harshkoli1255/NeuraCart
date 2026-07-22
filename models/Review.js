@@ -1,14 +1,14 @@
 const mongoose = require("mongoose");
 
 const reviewSchema = new mongoose.Schema({
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
     product: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
+        required: true
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
         required: true
     },
     rating: {
@@ -19,46 +19,28 @@ const reviewSchema = new mongoose.Schema({
     },
     comment: {
         type: String,
+        required: true,
         trim: true
     }
 }, {
     timestamps: true
 });
 
-// Calculate average rating after save/remove
-reviewSchema.post('save', async function() {
-    await this.constructor.calcAverageRatings(this.product);
-});
-
-reviewSchema.post('remove', async function() {
-    await this.constructor.calcAverageRatings(this.product);
-});
-
-reviewSchema.statics.calcAverageRatings = async function(productId) {
-    const stats = await this.aggregate([
-        {
-            $match: { product: productId }
-        },
-        {
-            $group: {
-                _id: '$product',
-                nRating: { $sum: 1 },
-                avgRating: { $avg: '$rating' }
-            }
-        }
-    ]);
-
-    if (stats.length > 0) {
-        await mongoose.model('Product').findByIdAndUpdate(productId, {
-            'ratings.count': stats[0].nRating,
-            'ratings.average': Math.round(stats[0].avgRating * 10) / 10
-        });
-    } else {
-        await mongoose.model('Product').findByIdAndUpdate(productId, {
-            'ratings.count': 0,
-            'ratings.average': 0
+// Update the average rating on the Product model when a review is added
+reviewSchema.post("save", async function(doc) {
+    const Product = mongoose.model("Product");
+    const reviews = await this.constructor.find({ product: doc.product });
+    
+    if (reviews.length > 0) {
+        const average = reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length;
+        await Product.findByIdAndUpdate(doc.product, {
+            ratings: {
+                average: parseFloat(average.toFixed(1)),
+                count: reviews.length
+            },
+            rating: parseFloat(average.toFixed(1))
         });
     }
-};
+});
 
 module.exports = mongoose.model("Review", reviewSchema);

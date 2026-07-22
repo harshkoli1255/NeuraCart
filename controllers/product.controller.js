@@ -253,3 +253,45 @@ exports.getCategoryPage = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.addReview = async (req, res, next) => {
+    try {
+        const productId = req.params.id;
+        const { rating, comment } = req.body;
+        
+        if (!req.user) {
+            req.flash("error_msg", "You must be logged in to leave a review.");
+            return res.redirect(`/product/${productId}`);
+        }
+
+        if (!rating || !comment) {
+            req.flash("error_msg", "Please provide both a rating and a comment.");
+            return res.redirect(`/product/${productId}`);
+        }
+
+        const Review = require("../models/Review");
+        
+        // Optional: Check if user already reviewed this product
+        const existingReview = await Review.findOne({ product: productId, user: req.user._id });
+        if (existingReview) {
+            req.flash("error_msg", "You have already reviewed this product.");
+            return res.redirect(`/product/${productId}`);
+        }
+
+        const review = new Review({
+            product: productId,
+            user: req.user._id,
+            rating: parseInt(rating, 10),
+            comment: comment.trim()
+        });
+
+        await review.save();
+        
+        req.flash("success_msg", "Review added successfully!");
+        res.redirect(`/product/${productId}`);
+    } catch (error) {
+        console.error("Add Review Error:", error);
+        req.flash("error_msg", "Failed to add review. Please try again.");
+        res.redirect(`/product/${req.params.id}`);
+    }
+};

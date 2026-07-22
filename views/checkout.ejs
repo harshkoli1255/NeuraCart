@@ -1,0 +1,182 @@
+<div class="checkout-page">
+    <div class="checkout-grid">
+        
+        <!-- LEFT: Forms -->
+        <div class="checkout-forms">
+            <h1 style="margin-bottom: 24px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
+                Secure Checkout <i class="fa-solid fa-lock" style="color: var(--success); font-size: 20px;"></i>
+            </h1>
+
+            <!-- Shipping Section -->
+            <div class="checkout-section">
+                <h3><i class="fa-regular fa-truck"></i> Shipping Information</h3>
+                
+                <div class="auth-form" style="gap: 16px;">
+                    <div class="input-group">
+                        <label for="fullName">Full Name</label>
+                        <div class="input-wrap">
+                            <input type="text" id="fullName" placeholder="John Doe" required value="<%= locals.user ? user.name : '' %>">
+                            <i class="fa-regular fa-user"></i>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="email">Email Address</label>
+                        <div class="input-wrap">
+                            <input type="email" id="email" placeholder="user@example.com" required value="<%= locals.user ? user.email : '' %>">
+                            <i class="fa-regular fa-envelope"></i>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+                        <div class="input-group">
+                            <label for="address">Street Address</label>
+                            <div class="input-wrap">
+                                <input type="text" id="address" placeholder="123 Main St" required>
+                                <i class="fa-regular fa-map-pin"></i>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="zip">ZIP Code</label>
+                            <div class="input-wrap">
+                                <input type="text" id="zip" placeholder="10001" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="input-group">
+                            <label for="city">City</label>
+                            <div class="input-wrap">
+                                <input type="text" id="city" placeholder="New York" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="state">State/Province</label>
+                            <div class="input-wrap">
+                                <input type="text" id="state" placeholder="NY" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Section -->
+            <div class="checkout-section">
+                <h3><i class="fa-regular fa-credit-card"></i> Payment Method</h3>
+                
+                <div class="payment-methods">
+                    <div class="payment-method active">
+                        <i class="fa-brands fa-cc-visa"></i>
+                        <span>Card (Stripe)</span>
+                    </div>
+                    <div class="payment-method">
+                        <i class="fa-brands fa-paypal" style="color: #00457C;"></i>
+                        <span>PayPal</span>
+                    </div>
+                    <div class="payment-method">
+                        <i class="fa-solid fa-building-columns"></i>
+                        <span>Net Banking</span>
+                    </div>
+                    <div class="payment-method">
+                        <i class="fa-brands fa-apple" style="font-size: 1.2em;"></i>
+                        <span>Apple Pay</span>
+                    </div>
+                </div>
+
+                <div class="auth-form" style="margin-top: 24px; gap: 16px;">
+                    <div class="input-group">
+                        <label for="cardName">Name on Card</label>
+                        <div class="input-wrap">
+                            <input type="text" id="cardName" placeholder="John Doe" required>
+                            <i class="fa-regular fa-user"></i>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="cardNumber">Card Number</label>
+                        <div class="input-wrap">
+                            <input type="text" id="cardNumber" placeholder="4242 4242 4242 4242" required>
+                            <i class="fa-regular fa-credit-card"></i>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="input-group">
+                            <label for="expiry">MM/YY</label>
+                            <div class="input-wrap">
+                                <input type="text" id="expiry" placeholder="12/26" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="cvv">CVV</label>
+                            <div class="input-wrap">
+                                <input type="text" id="cvv" placeholder="123" required>
+                                <i class="fa-regular fa-shield-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT: Summary Sidebar -->
+        <div class="checkout-summary-wrap">
+            <div class="checkout-summary" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: 28px; position: sticky; top: calc(var(--navbar-h) + 24px);">
+                <h3 style="font-size: 18px; font-weight: 700; color: var(--text-hi); margin-bottom: 24px;">Order Summary</h3>
+                
+                <div class="summary-items">
+                    <!-- Example hardcoded item for demonstration -->
+                    <div class="summary-item">
+                        <div class="summary-img" style="display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: 8px;">
+                            <i class="fa-solid fa-laptop" style="color: var(--purple-lt); font-size: 20px;"></i>
+                        </div>
+                        <div class="summary-info">
+                            <div class="summary-title">NeuraBook Pro 16</div>
+                            <div class="summary-meta">Qty: 1</div>
+                        </div>
+                        <div class="summary-price">₹1999.00</div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <div class="summary-img" style="display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: 8px;">
+                            <i class="fa-solid fa-headphones" style="color: var(--purple-lt); font-size: 20px;"></i>
+                        </div>
+                        <div class="summary-info">
+                            <div class="summary-title">Aurora Sound ANC Buds</div>
+                            <div class="summary-meta">Qty: 2</div>
+                        </div>
+                        <div class="summary-price">₹259.98</div>
+                    </div>
+                </div>
+                
+                <div class="summary-totals">
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span style="color: var(--text-hi); font-weight: 500;">₹2258.98</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Shipping</span>
+                        <span style="color: var(--success); font-weight: 500;">Free</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Taxes (18% GST)</span>
+                        <span style="color: var(--text-hi); font-weight: 500;">₹406.62</span>
+                    </div>
+                    
+                    <div class="summary-total">
+                        <span>Total</span>
+                        <span>₹2665.60</span>
+                    </div>
+                </div>
+                
+                <button class="nc-cta" style="width: 100%; margin-top: 24px; height: 56px; font-size: 16px;">
+                    Pay ₹2665.60 Securely <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                
+                <p style="font-size: 11.5px; color: var(--text-lo); text-align: center; margin-top: 16px; line-height: 1.5;">
+                    <i class="fa-solid fa-shield-check"></i> Payments are 100% secure and encrypted. By placing your order, you agree to our Terms of Service.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>

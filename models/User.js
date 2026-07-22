@@ -28,6 +28,28 @@ const userSchema = new mongoose.Schema( {
     avatar:{
         type:String,
         default:""
+    },
+    
+    // AI & Personalization Features
+    wishlist: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product"
+    }],
+    
+    searchHistory: [{
+        query: String,
+        timestamp: { type: Date, default: Date.now }
+    }],
+    
+    viewedProducts: [{
+        product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+        timestamp: { type: Date, default: Date.now }
+    }],
+    
+    preferences: {
+        categories: [String],
+        brands: [String],
+        sizes: [String]
     }
 },
 {

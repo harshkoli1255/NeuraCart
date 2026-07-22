@@ -15,11 +15,12 @@ exports.renderRegister = (req, res) => {
 exports.registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body;
-        
+
         // 1. Check if user already exists
         let user = await User.findOne({ email });
         if (user) {
-            return res.status(400).send("User already exists"); // Simple error for now
+            req.flash("error_msg", "Email is already registered. Please log in.");
+            return res.redirect("/auth/register");
         }
 
         // 2. Hash the password
@@ -35,17 +36,20 @@ exports.registerUser = async (req, res) => {
         await user.save();
 
         // 4. Redirect to login
+        req.flash("success_msg", "Account created successfully! Please log in.");
         res.redirect("/auth/login");
     } catch (err) {
         console.error(err);
-        res.status(500).send("Server Error");
+        req.flash("error_msg", "An error occurred during registration. Please try again.");
+        res.redirect("/auth/register");
     }
 };
 
 exports.loginUser = (req, res, next) => {
     passport.authenticate("local", {
-        successRedirect: "/", // Where to go on success
-        failureRedirect: "/auth/login", // Where to go on failure
+        successRedirect: "/",
+        failureRedirect: "/auth/login",
+        failureFlash: true
     })(req, res, next);
 };
 

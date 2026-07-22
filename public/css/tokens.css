@@ -1,0 +1,105 @@
+/* ============================================================
+   NEURACART DESIGN TOKENS
+   Theme definitions for Light and Dark modes
+   ============================================================ */
+
+/* DARK THEME (Default) */
+:root,
+:root[data-theme="dark"] {
+    --bg: #04040c; 
+    --bg-2: #07071a; 
+    --surface: #0a0a18; 
+    --surface-2: #10101e; 
+    --surface-3: #16162a;
+    --border: rgba(255,255,255,0.07); 
+    --border-2: rgba(255,255,255,0.12);
+    
+    --purple: #8b5cf6; 
+    --purple-dk: #7c3aed; 
+    --purple-lt: #a78bfa; 
+    --purple-glow: rgba(139,92,246,0.25);
+    
+    --cyan: #22d3ee; 
+    --cyan-dk: #06b6d4; 
+    --cyan-lt: #67e8f9; 
+    --cyan-glow: rgba(34,211,238,0.20);
+    
+    --success: #10b981; 
+    --warning: #f59e0b; 
+    --error: #f87171;
+    
+    --text-hi: #f0f0ff; 
+    --text-med: #9090b8; 
+    --text-lo: #5a5a78; 
+    --text-xlo: #3a3a52;
+    
+    --grad-main: linear-gradient(135deg, #8b5cf6 0%, #22d3ee 100%);
+    --grad-purple: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    --grad-surface: linear-gradient(145deg, rgba(139,92,246,0.06) 0%, rgba(34,211,238,0.03) 100%);
+    
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+    
+    --nav-bg: rgba(4,4,12,0.82);
+    --nav-bg-scrolled: rgba(4,4,12,0.96);
+    --nav-shadow-scrolled: 0 2px 24px rgba(0,0,0,0.4);
+    --auth-left-bg: linear-gradient(145deg, #07071a 0%, #0d0d2a 50%, #111130 100%);
+}
+
+/* LIGHT THEME */
+:root[data-theme="light"] {
+    --bg: #f4f4ff; 
+    --bg-2: #ececff; 
+    --surface: #ffffff; 
+    --surface-2: #f8f8ff; 
+    --surface-3: #f0f0fc;
+    --border: rgba(0,0,0,0.07); 
+    --border-2: rgba(0,0,0,0.12);
+    
+    /* Semantic colors remain mostly same conceptually, adjusted for light */
+    --purple: #8b5cf6; 
+    --purple-dk: #7c3aed; 
+    --purple-lt: #a78bfa; 
+    --purple-glow: rgba(139,92,246,0.12);
+    
+    --cyan: #22d3ee; 
+    --cyan-dk: #06b6d4; 
+    --cyan-lt: #67e8f9; 
+    --cyan-glow: rgba(34,211,238,0.10);
+    
+    --success: #10b981; 
+    --warning: #f59e0b; 
+    --error: #f87171;
+    
+    --text-hi: #0d0d20; 
+    --text-med: #4a4a6a; 
+    --text-lo: #7a7a9a; 
+    --text-xlo: #aaaac0;
+    
+    --grad-main: linear-gradient(135deg, #8b5cf6 0%, #22d3ee 100%);
+    --grad-purple: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    --grad-surface: linear-gradient(145deg, rgba(139,92,246,0.04) 0%, rgba(34,211,238,0.02) 100%);
+    
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.08); 
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.10); 
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+    
+    --nav-bg: rgba(255,255,255,0.85);
+    --nav-bg-scrolled: rgba(244,244,255,0.98);
+    --nav-shadow-scrolled: 0 2px 24px rgba(0,0,0,0.08);
+    --auth-left-bg: linear-gradient(145deg, #ececff 0%, #f4f4ff 50%, #ffffff 100%);
+}
+
+/* BASE TOKENS (Theme-independent) */
+:root {
+    --navbar-h: 68px; 
+    --r-sm: 8px; 
+    --r-md: 14px; 
+    --r-lg: 20px; 
+    --r-xl: 28px; 
+    --r-full: 9999px;
+    --ease: 0.22s cubic-bezier(0.4,0,0.2,1); 
+    --bounce: 0.35s cubic-bezier(0.34,1.56,0.64,1); 
+    --slow: 0.5s cubic-bezier(0.4,0,0.2,1);
+}

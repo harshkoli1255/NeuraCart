@@ -1,0 +1,17 @@
+/* ============================================================
+   NeuraCart Icon System — Inline SVG fallback
+   Provides reliable icons when Font Awesome CDN is unavailable
+   ============================================================ */
+
+/* Make all <i> tags with fa- classes display as inline-flex boxes */
+i[class*="fa-"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    font-style: normal;
+    line-height: 1;
+    vertical-align: -0.125em;
+    fill: currentColor;
+}

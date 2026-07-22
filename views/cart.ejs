@@ -1,0 +1,68 @@
+<main class="cart-page">
+    <div class="cart-heading">
+        <div>
+            <p class="cart-kicker">Your selections</p>
+            <h1>Shopping Cart</h1>
+        </div>
+        <a href="/shop" class="nc-btn-secondary"><i class="fa-solid fa-arrow-left"></i> Continue Shopping</a>
+    </div>
+
+    <% if (items.length) { %>
+        <div class="cart-layout">
+            <section class="cart-items" aria-label="Cart items">
+                <% items.forEach(({ product, quantity, subtotal }) => { %>
+                    <article class="cart-item">
+                        <a href="/product/<%= product._id %>" class="cart-item-image">
+                            <% if (product.image) { %>
+                                <img src="<%= product.image %>" alt="<%= product.title %>" data-product-image>
+                            <% } else { %>
+                                <i class="fa-solid fa-box-open" style="font-size: 24px; color: var(--purple-lt);"></i>
+                            <% } %>
+                        </a>
+                        <div class="cart-item-details">
+                            <span class="cart-item-brand"><%= product.brand || 'NeuraCart' %></span>
+                            <a href="/product/<%= product._id %>" class="cart-item-title"><%= product.title %></a>
+                            <p class="cart-item-stock <%= product.stock < 6 ? 'low' : '' %>"><%= product.stock < 6 ? `Only ${product.stock} left` : 'In stock' %></p>
+                            <div class="cart-item-actions">
+                                <form action="/cart/<%= product._id %>/update" method="POST" class="cart-quantity-form">
+                                    <label class="sr-only" for="quantity-<%= product._id %>">Quantity</label>
+                                    <input id="quantity-<%= product._id %>" name="quantity" type="number" min="1" max="<%= product.stock %>" value="<%= quantity %>" aria-label="Quantity">
+                                    <button type="submit" title="Update Quantity"><i class="fa-solid fa-rotate-right"></i></button>
+                                </form>
+                                <form action="/cart/<%= product._id %>/remove" method="POST">
+                                    <button class="cart-remove" type="submit" title="Remove Item"><i class="fa-regular fa-trash-can"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="cart-item-prices">
+                            <span class="cart-item-price">₹<%= product.price.toFixed(2) %> each</span>
+                            <strong>₹<%= subtotal.toFixed(2) %></strong>
+                        </div>
+                    </article>
+                <% }) %>
+            </section>
+
+            <aside class="cart-summary" aria-label="Order summary">
+                <h2>Order Summary</h2>
+                <div class="summary-row"><span>Subtotal</span><strong>₹<%= subtotal.toFixed(2) %></strong></div>
+                <div class="summary-row"><span>Shipping</span><strong>Free</strong></div>
+                <div class="cart-total"><span>Total</span><strong>₹<%= total.toFixed(2) %></strong></div>
+                <a href="/cart/checkout" class="nc-cta" style="width: 100%; text-align: center; justify-content: center; margin-top: 16px; padding: 14px; font-size: 15px;">Proceed to Checkout <i class="fa-solid fa-arrow-right"></i></a>
+                <div class="cart-trust-badges" style="display: flex; gap: 8px; justify-content: center; margin-top: 16px; color: var(--text-lo); font-size: 18px;">
+                    <i class="fa-brands fa-cc-visa"></i>
+                    <i class="fa-brands fa-cc-mastercard"></i>
+                    <i class="fa-brands fa-cc-amex"></i>
+                    <i class="fa-brands fa-cc-paypal"></i>
+                </div>
+                <p class="cart-summary-note"><i class="fa-solid fa-lock"></i> Secure 256-bit SSL encryption.</p>
+            </aside>
+        </div>
+    <% } else { %>
+        <section class="cart-empty">
+            <div class="cart-empty-icon"><i class="fa-solid fa-cart-shopping"></i></div>
+            <h1>Your cart is empty</h1>
+            <p>Looks like you haven't added anything yet. Explore our AI-powered catalogue and find something you love.</p>
+            <a href="/shop" class="nc-cta cart-empty-cta">Browse Products <i class="fa-solid fa-arrow-right"></i></a>
+        </section>
+    <% } %>
+</main>

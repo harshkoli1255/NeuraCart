@@ -1,43 +1,126 @@
 <div class="shop-page">
-    <nav class="navbar" id="navbar">
-        <a href="/" class="nav-logo"><img src="/images/favicon.png" alt="NeuraCart logo"><span class="nav-logo-name">NeuraCart</span><span class="nav-logo-beta">Beta</span></a>
-        <div class="nav-middle">
-            <form class="nav-search-wrap" action="/shop" method="GET">
-                <div class="nav-search-icon-sm" aria-hidden="true">⌕</div>
-                <input class="nav-search-input-sm" type="search" name="q" value="<%= searchQuery %>" placeholder="Search products..." aria-label="Search products">
-                <button class="nav-search-submit" type="submit" aria-label="Submit search">›</button>
-            </form>
-            <div class="nav-sep"></div>
-            <div class="nav-links-row"><a class="is-active" href="/shop">Shop</a><a href="#">Deals</a><a href="#">AI Picks</a></div>
-        </div>
-        <div class="nav-right"><a href="/auth/login" class="nav-login">Log In</a><a href="/auth/register" class="nav-signup">Get Started</a><button class="nav-hamburger" id="hamburger-btn" aria-label="Toggle menu" aria-expanded="false"><span></span><span></span><span></span></button></div>
-    </nav>
-
-    <div class="nav-mobile-menu" id="mobile-menu"><a href="/shop"><span>🛍️</span> Shop</a><a href="/auth/login">Log In</a><a href="/auth/register">Get Started</a></div>
-
-    <section class="shop-categories" aria-label="Shop categories">
-        <a href="/shop" class="shop-category <%= !activeCategory ? 'active' : '' %>"><span class="shop-category-icon">✨</span><span>For You</span></a>
+    
+    <!-- Category Strip -->
+    <div class="shop-category-strip">
+        <a href="/shop" class="shop-cat-pill <%= !activeCategory ? 'active' : '' %>">
+            ✨ All Products
+        </a>
         <% categories.forEach(category => { %>
-            <a href="/shop?category=<%= category.slug %>" class="shop-category <%= activeCategory === category.slug ? 'active' : '' %>"><span class="shop-category-icon"><%= category.icon %></span><span><%= category.name %></span></a>
+            <a href="/shop?category=<%= category.slug %>" class="shop-cat-pill <%= activeCategory === category.slug ? 'active' : '' %>">
+                <%= category.icon %> <%= category.name %>
+            </a>
         <% }) %>
-    </section>
+    </div>
 
-    <main class="shop-content">
-        <aside class="shop-filters">
-            <h2>Filters</h2>
-            <div class="filter-section"><h3>Categories</h3>
-                <a class="filter-link <%= !activeCategory ? 'selected' : '' %>" href="/shop">All products</a>
-                <% categories.forEach(category => { %><a class="filter-link <%= activeCategory === category.slug ? 'selected' : '' %>" href="/shop?category=<%= category.slug %>"><span><%= category.icon %></span> <%= category.name %></a><% }) %>
+    <!-- Shop Layout (Sidebar + Grid) -->
+    <div class="shop-layout">
+        
+        <!-- Sidebar Filters -->
+        <aside class="shop-sidebar">
+            <h3 class="sidebar-title">Filters</h3>
+            
+            <div class="filter-group">
+                <span class="filter-group-label">Categories</span>
+                <a href="/shop" class="filter-link <%= !activeCategory ? 'selected' : '' %>">
+                    <i class="<%= !activeCategory ? 'fa-solid fa-square-check' : 'fa-regular fa-square' %>"></i> All Categories
+                </a>
+                <% categories.forEach(category => { %>
+                    <a href="/shop?category=<%= category.slug %>" class="filter-link <%= activeCategory === category.slug ? 'selected' : '' %>">
+                        <i class="<%= activeCategory === category.slug ? 'fa-solid fa-square-check' : 'fa-regular fa-square' %>"></i> <%= category.name %>
+                    </a>
+                <% }) %>
             </div>
-            <div class="filter-section"><h3>Price</h3><a class="filter-link" href="/shop?sort=price-low">Low to high</a><a class="filter-link" href="/shop?sort=price-high">High to low</a></div>
+
+            <hr class="filter-sep">
+
+            <div class="filter-group">
+                <span class="filter-group-label">Price Range</span>
+                <a href="#" class="filter-link"><i class="fa-regular fa-circle"></i> Under ₹5,000</a>
+                <a href="#" class="filter-link"><i class="fa-regular fa-circle"></i> ₹5,000 - ₹20,000</a>
+                <a href="#" class="filter-link"><i class="fa-regular fa-circle"></i> ₹20,000 - ₹50,000</a>
+                <a href="#" class="filter-link"><i class="fa-regular fa-circle"></i> Over ₹50,000</a>
+            </div>
+
+            <hr class="filter-sep">
+
+            <div class="filter-group">
+                <span class="filter-group-label">Customer Rating</span>
+                <a href="#" class="filter-link"><i class="fa-regular fa-circle"></i> 4★ & above</a>
+                <a href="#" class="filter-link"><i class="fa-regular fa-circle"></i> 3★ & above</a>
+            </div>
         </aside>
 
-        <section class="catalogue">
-            <div class="catalogue-heading"><div><p class="breadcrumbs">Home <span>›</span> Shop</p><h1><%= activeCategory ? categories.find(c => c.slug === activeCategory)?.name || 'Shop' : 'Discover products' %> <span>(<%= products.length %> products)</span></h1></div></div>
-            <div class="sort-bar"><strong>Sort by</strong><a class="<%= activeSort === 'popular' ? 'active' : '' %>" href="/shop?<%= activeCategory ? 'category=' + activeCategory + '&' : '' %>sort=popular">Popularity</a><a class="<%= activeSort === 'price-low' ? 'active' : '' %>" href="/shop?<%= activeCategory ? 'category=' + activeCategory + '&' : '' %>sort=price-low">Price: Low to High</a><a class="<%= activeSort === 'price-high' ? 'active' : '' %>" href="/shop?<%= activeCategory ? 'category=' + activeCategory + '&' : '' %>sort=price-high">Price: High to Low</a></div>
-            <% if (products.length) { %><div class="catalogue-grid"><% products.forEach(product => { %>
-                <a href="/product/<%= product._id %>" class="catalogue-card"><button class="catalogue-heart" aria-label="Save <%= product.title %>">♡</button><div class="catalogue-image"><span><%= product.category?.icon || '📦' %></span></div><div class="catalogue-info"><p class="catalogue-brand"><%= product.brand || 'NeuraCart' %></p><h2><%= product.title %></h2><p class="catalogue-description"><%= product.description %></p><div><span class="catalogue-rating">★ <%= product.ratings.average %></span><span class="rating-count">(<%= product.ratings.count %>)</span></div><p class="catalogue-price">$<%= product.price.toFixed(2) %></p><p class="catalogue-stock <%= product.stock < 10 ? 'low' : '' %>"><%= product.stock < 10 ? 'Only a few left' : 'In stock' %></p></div></a>
-            <% }) %></div><% } else { %><div class="catalogue-empty"><div>🔎</div><h2>No products found</h2><p>Try a different category or search term.</p><a href="/shop">View all products</a></div><% } %>
-        </section>
-    </main>
+        <!-- Main Catalogue -->
+        <main class="shop-main">
+            
+            <div class="shop-header">
+                <div>
+                    <h1 class="shop-heading">
+                        <%= activeCategory ? categories.find(c => c.slug === activeCategory)?.name || 'Shop' : 'All Products' %>
+                    </h1>
+                    <span class="shop-count">Showing <%= products.length %> products</span>
+                </div>
+                
+                <div class="sort-bar">
+                    <span class="sort-label">Sort by:</span>
+                    <a href="/shop?<%= activeCategory ? 'category=' + activeCategory + '&' : '' %>sort=popular" class="sort-btn <%= activeSort === 'popular' ? 'active' : '' %>">Popularity</a>
+                    <a href="/shop?<%= activeCategory ? 'category=' + activeCategory + '&' : '' %>sort=price-low" class="sort-btn <%= activeSort === 'price-low' ? 'active' : '' %>">Price: Low to High</a>
+                    <a href="/shop?<%= activeCategory ? 'category=' + activeCategory + '&' : '' %>sort=price-high" class="sort-btn <%= activeSort === 'price-high' ? 'active' : '' %>">Price: High to Low</a>
+                </div>
+            </div>
+
+            <% if (products && products.length > 0) { %>
+                <div class="catalogue-grid" id="product-grid">
+                    <% products.forEach(product => { %>
+                        <a href="/product/<%= product._id %>" class="product-card">
+                            <% if (product.isFeatured) { %>
+                                <span class="product-badge product-badge-ai">Hot</span>
+                            <% } %>
+                            <button class="product-wishlist" aria-label="Add to wishlist"><i class="fa-regular fa-heart"></i></button>
+                            <div class="product-card-image">
+                                <% if (product.image) { %>
+                                    <img src="<%= product.image %>" alt="<%= product.title %>" loading="lazy" decoding="async" data-product-image>
+                                <% } else { %>
+                                    <%= product.category?.icon || '📁' %>
+                                <% } %>
+                            </div>
+                            <div class="product-card-body">
+                                <span class="product-category-tag"><%= product.brand || 'NeuraCart' %></span>
+                                <h3 class="product-title"><%= product.title %></h3>
+                                <div class="product-meta">
+                                    <span class="product-price">₹<%= product.price.toFixed(2) %></span>
+                                    <span class="product-rating">
+                                        <i class="fa-solid fa-star"></i> <%= product.ratings.average %>
+                                        <span class="product-rating-count">(<%= product.ratings.count %>)</span>
+                                    </span>
+                                </div>
+                                <% if (product.stock < 10) { %>
+                                    <div class="product-stock-low">Only <%= product.stock %> left!</div>
+                                <% } %>
+                                <button class="btn-add-cart" type="button" data-add-to-cart data-product-id="<%= product._id %>">
+                                    <i class="fa-solid fa-cart-plus"></i> Add to Cart
+                                </button>
+                            </div>
+                        </a>
+                    <% }) %>
+                </div>
+
+                <% if (hasNextPage) { %>
+                    <!-- Infinite Scroll Observer Target -->
+                    <div id="infinite-scroll-trigger" data-current-page="<%= currentPage %>" data-has-next="true" data-category="<%= activeCategory %>" data-sort="<%= activeSort %>" data-query="<%= searchQuery %>" style="display: flex; justify-content: center; padding: 40px; color: var(--purple-lt);">
+                        <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i>
+                    </div>
+                <% } %>
+                
+            <% } else { %>
+                <div class="shop-empty">
+                    <div class="shop-empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    <h2>No products found</h2>
+                    <p>We couldn't find any products matching your criteria.</p>
+                    <a href="/shop" class="btn btn-primary" style="margin-top: 16px;">Clear all filters</a>
+                </div>
+            <% } %>
+            
+        </main>
+    </div>
 </div>

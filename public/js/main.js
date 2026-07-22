@@ -1,6 +1,6 @@
 /**
- * main.js — NeuraCart client-side interactions
- * Served as a static file to avoid CSP violations from inline scripts.
+ * main.js — NeuraCart v2 client-side interactions
+ * Updated for the new design system
  */
 (function () {
     'use strict';
@@ -8,30 +8,30 @@
     /* --------------------------------------------------
        1. HAMBURGER MENU TOGGLE
        -------------------------------------------------- */
-    const hamburger = document.getElementById('hamburger-btn');
-    const mobileMenu = document.getElementById('mobile-menu');
+    const hamburger = document.querySelector('.nc-hamburger');
+    const mobileDrawer = document.querySelector('.nc-drawer');
 
-    if (hamburger && mobileMenu) {
+    if (hamburger && mobileDrawer) {
         hamburger.addEventListener('click', function (e) {
             e.stopPropagation();
-            const isOpen = mobileMenu.classList.toggle('open');
+            const isOpen = mobileDrawer.classList.toggle('open');
             hamburger.classList.toggle('open', isOpen);
             hamburger.setAttribute('aria-expanded', String(isOpen));
         });
 
         // Close drawer when clicking outside
         document.addEventListener('click', function (e) {
-            if (!hamburger.contains(e.target) && !mobileMenu.contains(e.target)) {
-                mobileMenu.classList.remove('open');
+            if (!hamburger.contains(e.target) && !mobileDrawer.contains(e.target)) {
+                mobileDrawer.classList.remove('open');
                 hamburger.classList.remove('open');
                 hamburger.setAttribute('aria-expanded', 'false');
             }
         });
 
         // Close drawer when a link inside it is clicked
-        mobileMenu.querySelectorAll('a').forEach(function (link) {
+        mobileDrawer.querySelectorAll('a').forEach(function (link) {
             link.addEventListener('click', function () {
-                mobileMenu.classList.remove('open');
+                mobileDrawer.classList.remove('open');
                 hamburger.classList.remove('open');
                 hamburger.setAttribute('aria-expanded', 'false');
             });
@@ -39,8 +39,8 @@
 
         // Close drawer on Escape key
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
-                mobileMenu.classList.remove('open');
+            if (e.key === 'Escape' && mobileDrawer.classList.contains('open')) {
+                mobileDrawer.classList.remove('open');
                 hamburger.classList.remove('open');
                 hamburger.setAttribute('aria-expanded', 'false');
                 hamburger.focus();
@@ -51,7 +51,7 @@
     /* --------------------------------------------------
        2. NAVBAR SCROLL EFFECT
        -------------------------------------------------- */
-    var navbar = document.getElementById('navbar');
+    const navbar = document.querySelector('.nc-nav');
     if (navbar) {
         window.addEventListener('scroll', function () {
             if (window.scrollY > 12) {
@@ -65,8 +65,7 @@
     /* --------------------------------------------------
        2b. CTA BUTTON RIPPLE
        -------------------------------------------------- */
-    var ctaBtn = document.getElementById('nc-cta-btn');
-    if (ctaBtn) {
+    document.querySelectorAll('.nc-cta').forEach(function(ctaBtn) {
         ctaBtn.addEventListener('click', function (e) {
             var ripple = document.createElement('span');
             ripple.className = 'ripple';
@@ -81,29 +80,129 @@
             ctaBtn.appendChild(ripple);
             setTimeout(function () { ripple.remove(); }, 600);
         });
-    }
+    });
 
     /* --------------------------------------------------
        3. WISHLIST TOGGLE
        -------------------------------------------------- */
-    document.querySelectorAll('.product-wishlist').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            var filled = btn.getAttribute('data-filled') === 'true';
-            btn.setAttribute('data-filled', String(!filled));
-            btn.textContent = filled ? '♡' : '♥';
-            btn.style.color  = filled ? '' : '#e11d48';
-            btn.style.background = filled ? 'rgba(255,255,255,.88)' : 'white';
+    function bindWishlists() {
+        document.querySelectorAll('.product-wishlist').forEach(function (btn) {
+            // Remove old listeners by cloning
+            const clone = btn.cloneNode(true);
+            if (btn.parentNode) {
+                btn.parentNode.replaceChild(clone, btn);
+            }
+            
+            clone.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var filled = clone.getAttribute('data-filled') === 'true';
+                clone.setAttribute('data-filled', String(!filled));
+                
+                // Using bootstrap icons instead of unicode if available
+                if (clone.querySelector('i')) {
+                    const icon = clone.querySelector('i');
+                    if (filled) {
+                        icon.classList.remove('fa-solid');
+                        icon.classList.add('fa-regular');
+                    } else {
+                        icon.classList.remove('fa-regular');
+                        icon.classList.add('fa-solid');
+                    }
+                } else {
+                    clone.textContent = filled ? '♡' : '♥';
+                }
+            });
         });
+    }
+    
+    // Initial bind
+    bindWishlists();
+
+    /* --------------------------------------------------
+       3b. PRODUCT IMAGE FALLBACKS
+       -------------------------------------------------- */
+    function bindProductImageFallbacks(root) {
+        (root || document).querySelectorAll('img[data-product-image]').forEach(function (image) {
+            if (image.dataset.fallbackBound) return;
+            image.dataset.fallbackBound = 'true';
+
+            function showFallback() {
+                var container = image.parentElement;
+                if (!container) return;
+                image.alt = '';
+                image.setAttribute('aria-hidden', 'true');
+                container.classList.add('image-load-failed');
+            }
+
+            image.addEventListener('error', showFallback, { once: true });
+            if (image.complete && image.naturalWidth === 0) showFallback();
+        });
+    }
+
+    bindProductImageFallbacks();
+
+    /* --------------------------------------------------
+       3c. PERSISTENT CART
+       -------------------------------------------------- */
+    function updateCartCount(count) {
+        document.querySelectorAll('.nc-cart-badge').forEach(function (badge) {
+            badge.textContent = count;
+        });
+    }
+
+    function showCartNotice(message, isError) {
+        var notice = document.createElement('div');
+        notice.className = 'cart-notice' + (isError ? ' cart-notice-error' : '');
+        notice.setAttribute('role', 'status');
+        notice.textContent = message;
+        document.body.appendChild(notice);
+        window.setTimeout(function () { notice.remove(); }, 3200);
+    }
+
+    document.addEventListener('click', async function (event) {
+        var button = event.target.closest('[data-add-to-cart]');
+        if (!button) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (button.disabled) return;
+
+        var productId = button.dataset.productId;
+        if (!productId) return;
+
+        var originalContent = button.innerHTML;
+        button.disabled = true;
+        button.textContent = 'Adding…';
+
+        try {
+            var response = await fetch('/cart/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ productId: productId, quantity: 1 })
+            });
+            var result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.error || 'Unable to add this item to your cart.');
+
+            updateCartCount(result.cartCount);
+            showCartNotice(result.message || 'Added to your cart.');
+        } catch (error) {
+            showCartNotice(error.message || 'Unable to add this item to your cart.', true);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalContent;
+            if (window.ncReplaceIcons) window.ncReplaceIcons();
+        }
     });
 
     /* --------------------------------------------------
        4. HERO SEARCH — focus and fetch
        -------------------------------------------------- */
-    var heroBtn    = document.getElementById('hero-search-btn');
-    var heroInput  = document.getElementById('hero-search');
-    var productGrid = document.getElementById('product-grid');
-    var originalGridHtml = productGrid ? productGrid.innerHTML : '';
+    var heroBtn    = document.querySelector('.hero-search-btn');
+    var heroInput  = document.querySelector('.hero-search-input');
+    var productGrid = document.querySelector('.product-grid');
+    var sectionTitle = document.querySelector('.section-title');
 
     if (heroBtn && heroInput) {
         heroBtn.addEventListener('click', async function () {
@@ -115,45 +214,51 @@
 
             // UI Loading State
             const originalBtnHtml = heroBtn.innerHTML;
-            heroBtn.innerHTML = `<svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" stroke-opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Thinking...`;
+            heroBtn.innerHTML = `<span class="spinner" style="margin-right:8px; border-width: 2px;"></span> <span>Thinking...</span>`;
             heroBtn.disabled = true;
 
             try {
-                const response = await fetch('/api/products/ai-search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query })
-                });
-
-                const result = await response.json();
+                const response = await axios.post('/api/products/ai-search', { query });
+                const result = response.data;
                 
                 if (result.success && productGrid) {
-                    // Update Section Title
-                    const sectionTitle = document.querySelector('.section-title');
-                    if (sectionTitle) sectionTitle.innerHTML = `✨ AI Results for: "${query}"`;
+                    if (sectionTitle) {
+                        sectionTitle.innerHTML = `✨ AI Results for: "${query}"`;
+                    }
                     
                     if (result.count === 0) {
                         const emptyMsg = result.message || "No products found matching your AI search.";
-                        productGrid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b; font-size: 16px;">${emptyMsg}</p>`;
+                        productGrid.innerHTML = `
+                            <div class="shop-empty">
+                                <div class="shop-empty-icon">🔍</div>
+                                <h2>No Results Found</h2>
+                                <p>${emptyMsg}</p>
+                            </div>
+                        `;
+                        // Change grid layout temporarily for empty state
+                        productGrid.style.display = 'block';
                     } else {
-                        // Re-render product grid
+                        productGrid.style.display = 'grid'; // Restore grid
+                        // Re-render product grid using the new DOM classes
                         productGrid.innerHTML = result.data.map(product => `
-                            <a href="/product/${product._id}" class="product-card" style="text-decoration: none; color: inherit; display: block;">
+                            <a href="/product/${product._id}" class="product-card">
                                 ${product.isFeatured ? '<span class="product-badge">Hot</span>' : ''}
-                                <button class="product-wishlist" aria-label="Add to wishlist" onclick="event.preventDefault();">♡</button>
-                                <div class="product-image" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">
-                                    ${product.image ? `<img src="${product.image}" alt="${product.name || product.title}" style="width: 100%; height: 100%; object-fit: cover;">` : (product.category ? product.category.icon : '📁')}
+                                <button class="product-wishlist" aria-label="Add to wishlist">♡</button>
+                                <div class="product-card-image">
+                                    ${product.image ? `<img src="${product.image}" alt="${product.name || product.title}" data-product-image>` : (product.category ? product.category.icon : '📁')}
                                 </div>
-                                <div class="product-info">
+                                <div class="product-card-body">
                                     <span class="product-category-tag">${product.category ? product.category.name : 'General'}</span>
                                     <h3 class="product-title">${product.name || product.title}</h3>
                                     <div class="product-meta">
                                         <span class="product-price">₹${product.price.toFixed(2)}</span>
-                                        <span class="product-rating">★ ${product.ratings.average}</span>
+                                        <span class="product-rating">
+                                            <i class="fa-solid fa-star"></i> ${product.ratings.average} 
+                                            <span class="product-rating-count">(${product.ratings.count})</span>
+                                        </span>
                                     </div>
-                                    <button class="btn-add-cart" onclick="event.preventDefault();">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                                        Add to Cart
+                                    <button class="btn-add-cart" type="button" data-add-to-cart data-product-id="${product._id}">
+                                        <i class="fa-solid fa-cart-plus"></i> Add to Cart
                                     </button>
                                 </div>
                             </a>
@@ -161,6 +266,14 @@
                         
                         // Re-bind wishlist buttons
                         bindWishlists();
+                        bindProductImageFallbacks(productGrid);
+                    }
+                    
+                    // Scroll down to results
+                    if (sectionTitle) {
+                        sectionTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        productGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }
             } catch (err) {
@@ -179,48 +292,96 @@
         });
     }
 
-    function bindWishlists() {
-        document.querySelectorAll('.product-wishlist').forEach(function (btn) {
-            // Remove old listeners to avoid duplicates if re-binding
-            const clone = btn.cloneNode(true);
-            btn.parentNode.replaceChild(clone, btn);
-            
-            clone.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var filled = clone.getAttribute('data-filled') === 'true';
-                clone.setAttribute('data-filled', String(!filled));
-                clone.textContent = filled ? '♡' : '♥';
-                clone.style.color  = filled ? '' : '#e11d48';
-                clone.style.background = filled ? 'rgba(255,255,255,.88)' : 'white';
-            });
-        });
-    }
-
     /* --------------------------------------------------
-       5. DARK MODE TOGGLE
+       5. INFINITE SCROLL (Shop Page)
        -------------------------------------------------- */
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    const darkModeIcon   = document.getElementById('darkModeIcon');
+    const infiniteScrollTrigger = document.getElementById('infinite-scroll-trigger');
+    const productGridEl = document.getElementById('product-grid');
+    
+    if (infiniteScrollTrigger && productGridEl) {
+        let isLoading = false;
 
-    if (darkModeToggle) {
-        const updateIcon = (theme) => {
-            if (darkModeIcon) {
-                darkModeIcon.className = theme === 'dark'
-                    ? 'bi bi-sun-fill'
-                    : 'bi bi-moon-stars-fill';
+        const observer = new IntersectionObserver(async (entries) => {
+            const entry = entries[0];
+            if (entry.isIntersecting && !isLoading) {
+                const hasNext = infiniteScrollTrigger.dataset.hasNext === 'true';
+                if (!hasNext) return;
+
+                isLoading = true;
+                const currentPage = parseInt(infiniteScrollTrigger.dataset.currentPage, 10);
+                const nextPage = currentPage + 1;
+                const category = infiniteScrollTrigger.dataset.category || '';
+                const sort = infiniteScrollTrigger.dataset.sort || '';
+                const query = infiniteScrollTrigger.dataset.query || '';
+
+                try {
+                    const url = new URL(window.location.origin + '/shop');
+                    if (category) url.searchParams.set('category', category);
+                    if (sort) url.searchParams.set('sort', sort);
+                    if (query) url.searchParams.set('q', query);
+                    url.searchParams.set('page', nextPage);
+
+                    const response = await fetch(url.toString(), {
+                        headers: { 'Accept': 'application/json' }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.products && data.products.length > 0) {
+                        const newCards = data.products.map(product => `
+                            <a href="/product/${product._id}" class="product-card">
+                                ${product.isFeatured ? '<span class="product-badge product-badge-ai">Hot</span>' : ''}
+                                <button class="product-wishlist" aria-label="Add to wishlist"><i class="fa-regular fa-heart"></i></button>
+                                <div class="product-card-image">
+                                    ${product.image ? `<img src="${product.image}" alt="${product.title}" loading="lazy" decoding="async" data-product-image>` : (product.category?.icon || '📁')}
+                                </div>
+                                <div class="product-card-body">
+                                    <span class="product-category-tag">${product.brand || 'NeuraCart'}</span>
+                                    <h3 class="product-title">${product.title}</h3>
+                                    <div class="product-meta">
+                                        <span class="product-price">₹${product.price.toFixed(2)}</span>
+                                        <span class="product-rating">
+                                            <i class="fa-solid fa-star"></i> ${product.ratings ? product.ratings.average : 0}
+                                            <span class="product-rating-count">(${product.ratings ? product.ratings.count : 0})</span>
+                                        </span>
+                                    </div>
+                                    ${product.stock < 10 ? `<div class="product-stock-low">Only ${product.stock} left!</div>` : ''}
+                                    <button class="btn-add-cart" type="button" data-add-to-cart data-product-id="${product._id}">
+                                        <i class="fa-solid fa-cart-plus"></i> Add to Cart
+                                    </button>
+                                </div>
+                            </a>
+                        `).join('');
+
+                        productGridEl.insertAdjacentHTML('beforeend', newCards);
+                        
+                        // Rebind listeners on the newly added elements
+                        bindWishlists();
+                        bindProductImageFallbacks(productGridEl);
+
+                        // Update dataset
+                        infiniteScrollTrigger.dataset.currentPage = data.currentPage;
+                        infiniteScrollTrigger.dataset.hasNext = data.hasNextPage;
+
+                        if (!data.hasNextPage) {
+                            infiniteScrollTrigger.style.display = 'none';
+                            observer.disconnect();
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error loading more products:", error);
+                } finally {
+                    isLoading = false;
+                }
             }
-        };
-
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-        updateIcon(currentTheme);
-
-        darkModeToggle.addEventListener('click', () => {
-            const current = document.documentElement.getAttribute('data-theme') || 'light';
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-            updateIcon(next);
+        }, {
+            rootMargin: '100px', // Trigger slightly before it comes into view
+            threshold: 0.1
         });
+
+        observer.observe(infiniteScrollTrigger);
     }
+
+    // Theme toggling has been moved to theme.js
 
 })();

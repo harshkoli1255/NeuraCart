@@ -10,4 +10,7 @@ router.get("/:id", productController.getProductById);
 // AI Search Endpoint
 router.post("/ai-search", productController.aiSearch);
 
+// Reviews
+router.post("/:id/review", productController.addReview);
+
 module.exports = router;

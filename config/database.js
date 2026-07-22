@@ -4,7 +4,13 @@ require('dotenv').config()
 const uri = process.env.MONGO_URI;
 
 async function connectDB() {
-    await mongoose.connect(uri);
+    try {
+        await mongoose.connect(uri);
+        console.log("MongoDB connected successfully");
+    } catch (err) {
+        console.error("MongoDB connection error:", err.message);
+        // Do not crash the process so static files can still be served
+    }
 }
 
 module.exports = connectDB;
