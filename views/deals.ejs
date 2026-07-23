@@ -1,0 +1,62 @@
+<div class="shop-page-wrapper">
+    <!-- Header Section -->
+    <div class="shop-header">
+        <h1><i class="fa-solid fa-tags" style="color: #ff4757; margin-right: 12px;"></i>Today's Deals</h1>
+        <p>Incredible discounts on top-rated products. Grab them before they're gone!</p>
+    </div>
+
+    <% if (products && products.length > 0) { %>
+        <div class="products-grid">
+            <% products.forEach(product => { %>
+                <div class="product-card">
+                    <a href="/product/<%= product._id %>" class="product-link">
+                        <div class="product-image-wrap">
+                            <img src="<%= product.image %>" alt="<%= product.title %>" class="product-image">
+                            <!-- Deal Badge -->
+                            <div class="product-badge" style="background: #ff4757; color: white;">
+                                <i class="fa-solid fa-fire"></i> Hot Deal
+                            </div>
+                        </div>
+                        <div class="product-info">
+                            <span class="product-category"><%= product.category ? product.category.name : 'General' %></span>
+                            <h3 class="product-title"><%= product.title %></h3>
+                            <div class="product-price-row">
+                                <span class="product-price">
+                                    <span style="text-decoration: line-through; color: var(--text-muted); font-size: 0.8em; margin-right: 8px;">
+                                        $<%= (product.price * 1.4).toFixed(2) %>
+                                    </span>
+                                    $<%= product.price.toFixed(2) %>
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                    
+                    <form action="/cart/add" method="POST" class="add-to-cart-form">
+                        <input type="hidden" name="productId" value="<%= product._id %>">
+                        <input type="hidden" name="quantity" value="1">
+                        <% 
+                           const inCart = locals.cartItems && locals.cartItems.some(item => item.productId === product._id.toString());
+                        %>
+                        <button type="submit" class="add-cart-btn <%= inCart ? 'in-cart' : '' %>" <%= inCart ? 'disabled' : '' %>>
+                            <% if (inCart) { %>
+                                <i class="fa-solid fa-check"></i> Added
+                            <% } else { %>
+                                <i class="fa-regular fa-cart-shopping"></i> Add to Cart
+                            <% } %>
+                        </button>
+                    </form>
+                </div>
+            <% }) %>
+        </div>
+    <% } else { %>
+        <!-- Empty State -->
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fa-regular fa-face-frown-open"></i>
+            </div>
+            <h2>No deals right now</h2>
+            <p>Check back later for massive discounts on your favorite products!</p>
+            <a href="/shop" class="nc-cta" style="margin-top: 24px;">Explore Shop</a>
+        </div>
+    <% } %>
+</div>

@@ -14,15 +14,24 @@ const userSchema = new mongoose.Schema( {
         lowercase:true
     },
 
-    password:{
-        type:String,
-        required:true
+    googleId: {
+        type: String,
+        sparse: true,
+        unique: true
+    },
+
+    password: {
+        type: String,
+        required: function() {
+            // Password is only required if the user didn't sign up via Google
+            return !this.googleId;
+        }
     },
 
     role:{
         type:String,
-        enum:["customer","admin"],
-        default:"customer"
+        enum:["buyer", "seller", "admin"],
+        default:"buyer"
     },
 
     avatar:{

@@ -81,11 +81,24 @@ app.post('/theme', (req, res) => {
 });
 
 // Pass variables to all views
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
+    res.locals.port = req.socket.localPort;
+    res.locals.originalUrl = req.originalUrl;
     res.locals.success_msg = req.flash("success_msg");
     res.locals.error_msg = req.flash("error_msg");
     res.locals.error = req.flash("error");
     res.locals.user = req.user || null;
+    res.locals.isSeller = req.user && req.user.role === 'seller';
+    
+    // Fetch cart for reactive UI
+    res.locals.cartItems = [];
+    if (req.user && req.user.role === 'buyer') {
+        const Cart = require('./models/Cart');
+        const cart = await Cart.findOne({ user: req.user._id });
+        if (cart) {
+            res.locals.cartItems = cart.items.map(item => ({ productId: item.product.toString(), quantity: item.quantity }));
+        }
+    }
     next();
 });
 
@@ -107,10 +120,13 @@ const authRoutes = require("./routes/auth.routes");
 const productRoutes = require("./routes/product.routes");
 const categoryRoutes = require("./routes/category.routes");
 const cartRoutes = require('./routes/cart.routes');
+const sellerRoutes = require('./routes/seller.routes');
+
 app.use("/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/category", categoryRoutes);
 app.use('/cart', cartRoutes);
+app.use('/seller', sellerRoutes);
 
 const Product = require("./models/Product");
 const Category = require("./models/Category");
@@ -120,7 +136,7 @@ app.get("/shop", async (req, res, next) => {
     try {
         const { category, q, sort, page } = req.query;
         const categories = await Category.find().sort({ name: 1 });
-        const query = {};
+        const query = { image: { $exists: true, $ne: "" }, title: { $exists: true, $ne: "" } };
 
         if (category) {
             const selected = categories.find(c => c.slug === category);
@@ -171,11 +187,44 @@ app.get("/shop", async (req, res, next) => {
 // Homepage
 app.get("/", async (req, res) => {
     try {
-        const products = await Product.find({ isFeatured: true }).populate("category").limit(8);
+        const products = await Product.find({ image: { $exists: true, $ne: "" }, title: { $exists: true, $ne: "" } }).populate("category").limit(8);
         res.render("index", { title: "NeuraCart - AI Powered Shopping", products });
     } catch (err) {
         console.error(err);
         res.render("index", { title: "NeuraCart", products: [] });
+    }
+});
+
+// Deals Page
+app.get("/deals", async (req, res) => {
+    try {
+        // Fetch products priced under a certain amount, or randomly sampled for now
+        const products = await Product.find({ price: { $lt: 50 }, image: { $exists: true, $ne: "" } }).populate("category").limit(20);
+        res.render("deals", { title: "Today's Deals - NeuraCart", products });
+    } catch (err) {
+        console.error(err);
+        res.render("deals", { title: "Today's Deals", products: [] });
+    }
+});
+
+// AI Picks Page
+const { ensureAuthenticated } = require('./middleware/auth');
+app.get("/ai-picks", ensureAuthenticated, async (req, res) => {
+    try {
+        // We simulate highly personalized AI picks by grabbing random top-rated items
+        // In a true production app, this would use the user's view history and vector search
+        const products = await Product.aggregate([
+            { $match: { image: { $exists: true, $ne: "" } } },
+            { $sample: { size: 12 } }
+        ]);
+        
+        // Populate category manually since aggregate doesn't populate
+        await Product.populate(products, { path: "category" });
+        
+        res.render("ai-picks", { title: "AI Picks For You - NeuraCart", products });
+    } catch (err) {
+        console.error(err);
+        res.render("ai-picks", { title: "AI Picks", products: [] });
     }
 });
 
@@ -190,9 +239,14 @@ app.get("/product/:id", async (req, res) => {
             .populate("user", "name")
             .sort({ createdAt: -1 });
 
+        const similarProducts = await Product.find({ 
+            category: product.category._id, 
+            _id: { $ne: product._id } 
+        }).limit(4);
+
         res.render("product", {
             title: `${product.title} - NeuraCart`,
-            product, reviews
+            product, reviews, similarProducts
         });
     } catch (err) {
         console.error(err);

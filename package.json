@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "nodemon --dns-result-order=ipv4first server.js",
+    "fetch-dns": "node fetch-dns.js",
+    "generate": "node scripts/generate-all.js",
+    "resolve": "node resolve.js",
     "migrate:images": "node scripts/migrate-product-images.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -33,6 +36,7 @@
     "multer": "^2.2.0",
     "openai": "^6.48.0",
     "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
     "razorpay": "^2.9.8",
     "socket.io": "^4.8.3"

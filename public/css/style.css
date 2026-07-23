@@ -223,7 +223,9 @@ h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; color: var(--text-hi); li
 .product-badge { position: absolute; top: 12px; left: 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; background: var(--grad-purple); color: #fff; padding: 3px 9px; border-radius: var(--r-full); z-index: 2; -webkit-text-fill-color: white; }
 .product-badge-ai { background: linear-gradient(135deg, #22d3ee, #06b6d4); }
 .product-wishlist { position: absolute; top: 10px; right: 10px; z-index: 2; width: 44px; height: 44px; background: rgba(10,10,24,0.65); backdrop-filter: blur(8px); border: 1px solid var(--border-2); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--text-med); transition: background var(--ease), color var(--ease), transform var(--bounce); }
+[data-theme="light"] .product-wishlist { background: rgba(255,255,255,0.85); color: var(--text-hi); }
 .product-wishlist:hover { background: rgba(248,113,113,0.15); color: #f87171; transform: scale(1.15); border-color: rgba(248,113,113,0.30); }
+[data-theme="light"] .product-wishlist:hover { background: #fee2e2; }
 .product-wishlist[data-filled="true"] { color: #f87171; background: rgba(248,113,113,0.12); }
 .product-card-body { padding: 14px; }
 .product-category-tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--purple-lt); margin-bottom: 6px; display: block; }
@@ -426,8 +428,8 @@ h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; color: var(--text-hi); li
 .input-wrap input::placeholder { color: var(--text-lo); }
 .input-wrap input:focus { border-color: var(--purple-lt); box-shadow: 0 0 0 3px rgba(139,92,246,0.15); background: var(--surface-2); }
 [data-theme="light"] .input-wrap input { background: #fff; }
-.input-wrap i { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--text-lo); pointer-events: none; transition: color var(--ease); display: flex; align-items: center; justify-content: center; }
-.input-wrap input:focus ~ i { color: var(--purple-lt); }
+.input-wrap i, .input-wrap svg { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--text-lo); pointer-events: none; transition: color var(--ease); display: flex; align-items: center; justify-content: center; }
+.input-wrap input:focus ~ i, .input-wrap input:focus ~ svg { color: var(--purple-lt); }
 .forgot-row { display: flex; justify-content: flex-end; margin-top: -8px; }
 .forgot-link { font-size: 13px; color: var(--cyan-lt); text-decoration: none; font-weight: 600; transition: opacity var(--ease); }
 .forgot-link:hover { opacity: 0.8; }

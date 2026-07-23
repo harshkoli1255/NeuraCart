@@ -76,7 +76,7 @@
                             <% if (product.isFeatured) { %>
                                 <span class="product-badge product-badge-ai">Hot</span>
                             <% } %>
-                            <button class="product-wishlist" aria-label="Add to wishlist"><i class="fa-regular fa-heart"></i></button>
+                            <button class="product-wishlist" aria-label="Add to wishlist" data-product-id="<%= product._id %>"><i class="fa-regular fa-heart"></i></button>
                             <div class="product-card-image">
                                 <% if (product.image) { %>
                                     <img src="<%= product.image %>" alt="<%= product.title %>" loading="lazy" decoding="async" data-product-image>

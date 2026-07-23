@@ -24,6 +24,9 @@
 
             document.documentElement.setAttribute('data-theme', theme || 'light');
         }());
+        
+        // Inject Cart State
+        window.CART_ITEMS = <%- locals.cartItems ? JSON.stringify(locals.cartItems) : '[]' %>;
     </script>
 
     <!-- Google Fonts -->

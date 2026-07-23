@@ -66,7 +66,7 @@
                 </div>
 
                 <div class="pdp-desc-text">
-                    <%= product.description %>
+                    <%- product.description %>
                 </div>
             </div>
 
@@ -109,7 +109,7 @@
         <div>
             <div class="pdp-tabs">
                 <button class="pdp-tab active" data-tab="specs">Specifications</button>
-                <button class="pdp-tab" data-tab="reviews">Reviews (<%= product.ratings.count %>)</button>
+                <button class="pdp-tab" data-tab="reviews">Reviews (<%= reviews ? reviews.length : 0 %>)</button>
             </div>
             
             <% if (success_msg && success_msg.length > 0) { %>
@@ -145,13 +145,13 @@
                     <% if (locals.user) { %>
                         <button id="toggleReviewFormBtn" class="btn btn-primary" style="background:var(--grad-purple); color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor: pointer;">Write a Review</button>
                     <% } else { %>
-                        <a href="/auth/login" class="btn btn-primary" style="background:var(--surface-2); color:var(--text-hi); border:1px solid var(--border); padding:8px 16px; border-radius:8px; text-decoration: none;">Login to Review</a>
+                        <a href="/auth/login" class="nc-cta" style="padding: 8px 16px; font-size: 14px; text-decoration: none;">Login to Review</a>
                     <% } %>
                 </div>
                 
                 <% if (locals.user) { %>
                 <div id="reviewFormContainer" style="display: none; background: var(--surface-2); padding: 24px; border-radius: var(--r-lg); margin-bottom: 32px; border: 1px solid var(--border);">
-                    <form action="/api/products/<%= product._id %>/review" method="POST" class="auth-form" style="max-width: 600px;">
+                    <form action="/api/products/<%= product._id %>/review" method="POST" enctype="multipart/form-data" class="auth-form" style="max-width: 600px;">
                         <h4 style="margin-top: 0; margin-bottom: 16px; color: var(--text-hi);">Share your thoughts</h4>
                         <div class="input-group">
                             <label for="rating">Rating (1-5)</label>
@@ -172,6 +172,12 @@
                                 <textarea name="comment" id="comment" rows="4" required placeholder="What did you like or dislike?" style="width: 100%; padding: 12px 16px; background: var(--surface); border: 1.5px solid var(--border-2); border-radius: var(--r-md); color: var(--text-hi); font-size: 14.5px; outline: none; resize: vertical;"></textarea>
                             </div>
                         </div>
+                        <div class="input-group">
+                            <label for="media">Attach Images / Videos (Optional, Max 3)</label>
+                            <div class="input-wrap">
+                                <input type="file" name="media" id="media" accept="image/*,video/*" multiple style="width: 100%; padding: 12px 16px; background: var(--surface); border: 1.5px solid var(--border-2); border-radius: var(--r-md); color: var(--text-hi); font-size: 14.5px; outline: none;">
+                            </div>
+                        </div>
                         <button type="submit" class="auth-btn" style="margin-top: 8px; width: fit-content; padding: 0 24px;">Submit Review</button>
                     </form>
                 </div>
@@ -181,7 +187,7 @@
                     <% if (reviews && reviews.length > 0) { %>
                         <% reviews.forEach((review) => { %>
                             <div class="review-card">
-                                <div class="review-header">
+                                <div class="review-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <div class="review-author">
                                         <div class="review-avatar"><%= review.user.name.charAt(0) %></div>
                                         <div>
@@ -189,6 +195,11 @@
                                             <div class="review-date"><%= review.createdAt.toLocaleDateString() %></div>
                                         </div>
                                     </div>
+                                    <% if (locals.user && (review.user._id.toString() === locals.user._id.toString() || locals.user.role === 'admin')) { %>
+                                        <button onclick="deleteReview('<%= product._id %>', '<%= review._id %>')" style="background: none; border: none; color: var(--text-lo); cursor: pointer; transition: color var(--ease);" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-lo)'" title="Delete Review">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    <% } %>
                                 </div>
                                 <div class="review-rating">
                                     <% for(let i=1; i<=5; i++) { %>
@@ -198,6 +209,17 @@
                                 <div class="review-body">
                                     <%= review.comment %>
                                 </div>
+                                <% if (review.media && review.media.length > 0) { %>
+                                    <div class="review-media-grid" style="display: flex; gap: 12px; margin-top: 16px; overflow-x: auto; padding-bottom: 8px;">
+                                        <% review.media.forEach((mediaPath) => { %>
+                                            <% if (mediaPath.match(/\.(mp4|webm|ogg)$/i)) { %>
+                                                <video src="<%= mediaPath %>" controls style="height: 80px; width: auto; border-radius: 8px; border: 1px solid var(--border);"></video>
+                                            <% } else { %>
+                                                <img src="<%= mediaPath %>" alt="Review Media" style="height: 80px; width: auto; border-radius: 8px; border: 1px solid var(--border); object-fit: cover; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                                            <% } %>
+                                        <% }) %>
+                                    </div>
+                                <% } %>
                             </div>
                         <% }) %>
                     <% } else { %>
@@ -209,6 +231,46 @@
 
     </div>
 </div>
+
+<% if (similarProducts && similarProducts.length > 0) { %>
+<div class="container" style="padding-top: 24px; padding-bottom: 64px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
+        <h2 style="font-size: 24px; font-weight: 700; color: var(--text-hi);">Similar Products</h2>
+        <a href="/shop?category=<%= product.category.slug %>" style="color: var(--purple-lt); font-size: 14px; font-weight: 500; text-decoration: none;">View Category</a>
+    </div>
+    <div class="product-grid">
+        <% similarProducts.forEach((simProduct) => { %>
+            <div class="product-card" data-product-id="<%= simProduct._id %>">
+                <% if (simProduct.isFeatured) { %>
+                    <span class="product-badge product-badge-ai">Hot</span>
+                <% } %>
+                <button class="product-wishlist" aria-label="Add to wishlist" data-product-id="<%= simProduct._id %>"><i class="fa-regular fa-heart"></i></button>
+                <div class="product-card-image">
+                    <% if (simProduct.image) { %>
+                        <img src="<%= simProduct.image %>" alt="<%= simProduct.title %>" loading="lazy" decoding="async" data-product-image>
+                    <% } else { %>
+                        <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--surface-2); font-size:48px; color:var(--text-lo)">
+                            <%= product.category.icon %>
+                        </div>
+                    <% } %>
+                </div>
+                <div class="product-card-body">
+                    <span class="product-category-tag"><%= product.category.name %></span>
+                    <h3 class="product-title"><a href="/product/<%= simProduct._id %>"><%= simProduct.title %></a></h3>
+                    <div class="product-price-row">
+                        <span class="product-price">₹<%= simProduct.price.toFixed(2) %></span>
+                    </div>
+                </div>
+                <div class="product-card-footer">
+                    <button class="btn-add-cart" type="button" data-add-to-cart data-product-id="<%= simProduct._id %>">
+                        Add to Cart
+                    </button>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+</div>
+<% } %>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -241,4 +303,27 @@
             });
         }
     });
+
+    // Delete review function
+    async function deleteReview(productId, reviewId) {
+        if (!confirm('Are you sure you want to delete this review?')) return;
+        
+        try {
+            const response = await fetch(`/api/products/${productId}/review/${reviewId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Failed to delete review.');
+            }
+        } catch (error) {
+            console.error('Error deleting review:', error);
+            alert('An error occurred while deleting the review.');
+        }
+    }
 </script>

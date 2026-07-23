@@ -12,7 +12,7 @@
         <div class="auth-card">
             <div class="auth-header">
                 <a href="/" class="auth-logo">
-                    <img src="/images/favicon.png" alt="NeuraCart">
+                    <img src="/images/favicon.png" alt="NeuraCart" style="border-radius: 12px; overflow: hidden;">
                     <span class="auth-logo-name">NeuraCart</span>
                 </a>
                 <p class="auth-subtitle">Create your free account</p>
@@ -26,10 +26,20 @@
             <% } %>
 
             <form action="/auth/register" method="POST" class="auth-form">
+                
+                <% if (locals.port === 3001) { %>
+                    <input type="hidden" name="role" value="seller">
+                    <div class="auth-alert" style="background: rgba(34, 211, 238, 0.1); color: var(--cyan); border: 1px solid rgba(34, 211, 238, 0.2); padding: 12px; border-radius: var(--r-md); margin-bottom: 24px; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-store"></i> You are creating a Seller Account.
+                    </div>
+                <% } else { %>
+                    <input type="hidden" name="role" value="buyer">
+                <% } %>
+
                 <div class="input-group">
                     <label for="name">Full Name</label>
                     <div class="input-wrap">
-                        <input type="text" id="name" name="name" placeholder="John Doe" required autocomplete="name">
+                        <input type="text" id="name" name="name" required placeholder="John Doe" autocomplete="name">
                         <i class="fa-regular fa-user"></i>
                     </div>
                 </div>

@@ -24,10 +24,18 @@
                             <a href="/product/<%= product._id %>" class="cart-item-title"><%= product.title %></a>
                             <p class="cart-item-stock <%= product.stock < 6 ? 'low' : '' %>"><%= product.stock < 6 ? `Only ${product.stock} left` : 'In stock' %></p>
                             <div class="cart-item-actions">
-                                <form action="/cart/<%= product._id %>/update" method="POST" class="cart-quantity-form">
+                                <form action="/cart/<%= product._id %>/update" method="POST" class="cart-quantity-form" id="qty-form-<%= product._id %>" style="display: flex; align-items: center; border: 1px solid var(--border-2); border-radius: 8px; overflow: hidden; background: var(--surface);">
                                     <label class="sr-only" for="quantity-<%= product._id %>">Quantity</label>
-                                    <input id="quantity-<%= product._id %>" name="quantity" type="number" min="1" max="<%= product.stock %>" value="<%= quantity %>" aria-label="Quantity">
-                                    <button type="submit" title="Update Quantity"><i class="fa-solid fa-rotate-right"></i></button>
+                                    
+                                    <button type="button" class="qty-btn qty-minus" onclick="updateQty('<%= product._id %>', -1)" style="padding: 8px 12px; background: transparent; border: none; color: var(--text-lo); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px;">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    
+                                    <input id="quantity-<%= product._id %>" name="quantity" type="number" min="1" max="<%= product.stock %>" value="<%= quantity %>" aria-label="Quantity" style="width: 48px; text-align: center; border: none; background: transparent; color: var(--text-hi); font-weight: 500; font-size: 14px; padding: 0; appearance: none; -moz-appearance: textfield;" onchange="document.getElementById('qty-form-<%= product._id %>').submit()">
+                                    
+                                    <button type="button" class="qty-btn qty-plus" onclick="updateQty('<%= product._id %>', 1)" style="padding: 8px 12px; background: transparent; border: none; color: var(--text-lo); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px;">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
                                 </form>
                                 <form action="/cart/<%= product._id %>/remove" method="POST">
                                     <button class="cart-remove" type="submit" title="Remove Item"><i class="fa-regular fa-trash-can"></i></button>
@@ -66,3 +74,19 @@
         </section>
     <% } %>
 </main>
+
+<script>
+    function updateQty(productId, change) {
+        const input = document.getElementById('quantity-' + productId);
+        let newValue = parseInt(input.value) + change;
+        const max = parseInt(input.max);
+        
+        if (newValue < 1) newValue = 1;
+        if (newValue > max) newValue = max;
+        
+        if (input.value != newValue) {
+            input.value = newValue;
+            document.getElementById('qty-form-' + productId).submit();
+        }
+    }
+</script>

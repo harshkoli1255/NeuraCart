@@ -8,8 +8,15 @@ const connectDB = require("./config/database");
 
 connectDB();
 
-const PORT = process.env.PORT || 3000;
+const PORT_BUYER = process.env.PORT || 3000;
+const PORT_SELLER = process.env.SELLER_PORT || 3001;
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Start Buyer Server
+app.listen(PORT_BUYER, () => {
+    console.log(`🛍️ Buyer Server running on http://localhost:${PORT_BUYER}`);
+});
+
+// Start Seller Server
+app.listen(PORT_SELLER, () => {
+    console.log(`🏪 Seller Server running on http://localhost:${PORT_SELLER}`);
 });

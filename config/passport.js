@@ -25,6 +25,46 @@ module.exports = function (passport) {
         })
     );
 
+    const GoogleStrategy = require('passport-google-oauth20').Strategy;
+    passport.use(
+        new GoogleStrategy(
+            {
+                clientID: process.env.GOOGLE_CLIENT_ID || 'placeholder',
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'placeholder',
+                callbackURL: '/auth/google/callback'
+            },
+            async (accessToken, refreshToken, profile, done) => {
+                try {
+                    let user = await User.findOne({ googleId: profile.id });
+                    if (user) return done(null, user);
+
+                    user = await User.findOne({ email: profile.emails[0].value });
+                    if (user) {
+                        user.googleId = profile.id;
+                        if (!user.avatar && profile.photos && profile.photos[0]) {
+                            user.avatar = profile.photos[0].value;
+                        }
+                        await user.save();
+                        return done(null, user);
+                    }
+
+                    const newUser = new User({
+                        googleId: profile.id,
+                        name: profile.displayName,
+                        email: profile.emails[0].value,
+                        avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : ''
+                    });
+
+                    await newUser.save();
+                    done(null, newUser);
+                } catch (err) {
+                    console.error(err);
+                    done(err, null);
+                }
+            }
+        )
+    );
+
     passport.serializeUser((user, done) => {
         done(null, user.id);
     });

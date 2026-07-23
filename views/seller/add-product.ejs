@@ -1,0 +1,74 @@
+<%- include('../partials/header') %>
+
+<main style="padding: 40px 20px; max-width: 800px; margin: 0 auto; min-height: 70vh;">
+    <div style="margin-bottom: 32px;">
+        <a href="/seller/dashboard" style="color: var(--text-lo); text-decoration: none; margin-bottom: 16px; display: inline-block;">
+            <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <h1 style="color: var(--text-hi); font-size: 32px; margin-bottom: 8px;">Add New Product</h1>
+        <p style="color: var(--text-lo);">Fill in the details to list your product on NeuraCart.</p>
+    </div>
+
+    <form action="/seller/add-product" method="POST" style="background: var(--surface-2); padding: 32px; border-radius: var(--r-lg); border: 1px solid var(--border);">
+        <%- include('../partials/messages') %>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+            <div>
+                <label style="display: block; color: var(--text-lo); font-size: 14px; margin-bottom: 8px;">Product Title *</label>
+                <input type="text" name="title" required style="width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-hi);">
+            </div>
+            <div>
+                <label style="display: block; color: var(--text-lo); font-size: 14px; margin-bottom: 8px;">Short Name *</label>
+                <input type="text" name="name" required style="width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-hi);">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+            <div>
+                <label style="display: block; color: var(--text-lo); font-size: 14px; margin-bottom: 8px;">Brand</label>
+                <input type="text" name="brand" placeholder="e.g. Sony" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-hi);">
+            </div>
+            <div>
+                <label style="display: block; color: var(--text-lo); font-size: 14px; margin-bottom: 8px;">Price (₹) *</label>
+                <input type="number" name="price" step="0.01" required style="width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-hi);">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+            <div>
+                <label style="display: block; color: var(--text-lo); font-size: 14px; margin-bottom: 8px;">Category *</label>
+                <select name="categoryId" required style="width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-hi);">
+                    <option value="" disabled selected>Select Category</option>
+                    <% categories.forEach(cat => { %>
+                        <option value="<%= cat._id %>" style="color: black;"><%= cat.name %></option>
+                    <% }) %>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; color: var(--text-lo); font-size: 14px; margin-bottom: 8px;">Subcategory *</label>
+                <input type="text" name="subcategory" required placeholder="e.g. Laptops" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-hi);">
+            </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <label style="display: block; color: var(--text-lo); font-size: 14px; margin-bottom: 8px;">Image URL *</label>
+            <input type="url" name="image" required placeholder="https://example.com/image.jpg" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-hi);">
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <label style="display: block; color: var(--text-lo); font-size: 14px; margin-bottom: 8px;">Stock Quantity *</label>
+            <input type="number" name="stock" required min="0" value="10" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-hi);">
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <label style="display: block; color: var(--text-lo); font-size: 14px; margin-bottom: 8px;">Description *</label>
+            <textarea name="description" required rows="5" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-hi); font-family: inherit; resize: vertical;"></textarea>
+        </div>
+
+        <button type="submit" class="nc-cta" style="width: 100%; padding: 16px; font-size: 16px; justify-content: center;">
+            List Product
+        </button>
+    </form>
+</main>
+
+<%- include('../partials/footer') %>

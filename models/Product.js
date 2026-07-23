@@ -19,6 +19,10 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    imageDescription: {
+        type: String,
+        default: '' // Description of the product's visual appearance for the AI
+    },
     bulletPoints: [{
         type: String
     }],
@@ -31,6 +35,11 @@ const productSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
         ref: "Category",
         required: true
+    },
+    seller: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: false // Allowing null for generic seeded products
     },
     subcategory: {
         type: String,
@@ -56,6 +65,11 @@ const productSchema = new mongoose.Schema({
         stock: { type: Number, default: 0 },
         priceAdjustment: { type: Number, default: 0 }
     }],
+    attributes: {
+        type: Map,
+        of: String, // e.g. { "color": "Red", "material": "Leather", "fit": "Slim" }
+        default: {}
+    },
     embedding: {
         type: [Number], // For NVIDIA NIM Vector Search
         select: false // Exclude by default from normal queries to save bandwidth
@@ -139,22 +153,24 @@ productSchema.pre('validate', async function() {
     }
 });
 
-productSchema.pre('save', async function(next) {
+productSchema.pre('save', async function() {
     // Only generate new embeddings if title or description changed, or if it's new and has no embedding
-    if (this.isModified('title') || this.isModified('description') || (this.isNew && (!this.embedding || this.embedding.length === 0))) {
+    if (this.isModified('title') || this.isModified('description') || this.isModified('imageDescription') || (this.isNew && (!this.embedding || this.embedding.length === 0))) {
         try {
             const aiService = require('../services/ai.service');
-            const textToEmbed = `${this.title}. ${this.description}`;
+            const attrString = this.attributes ? Array.from(this.attributes.entries()).map(([k, v]) => `${k}: ${v}`).join(', ') : '';
+            const textToEmbed = `Brand: ${this.brand}. Title: ${this.title}. Visual: ${this.imageDescription}. Description: ${this.description}. Attributes: ${attrString}. Tags: ${(this.aiTags || []).join(', ')}`;
+            
             this.embedding = await aiService.generateEmbedding(textToEmbed);
+            
         } catch (err) {
             console.error("Failed to generate embedding in pre-save hook:", err);
             // We don't block the save if AI fails, we just won't have an embedding.
         }
     }
-    next();
 });
 
-// Index for basic text search just in case we need a fallback from AI search
-productSchema.index({ name: 'text', title: 'text', description: 'text', subcategory: 'text', aiTags: 'text' });
+// Enhanced Index for basic text search just in case we need a fallback from AI search
+productSchema.index({ name: 'text', title: 'text', description: 'text', imageDescription: 'text', subcategory: 'text', aiTags: 'text', brand: 'text' });
 
 module.exports = mongoose.model("Product", productSchema);

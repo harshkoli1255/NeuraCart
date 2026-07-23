@@ -14,13 +14,19 @@ exports.renderRegister = (req, res) => {
 
 exports.registerUser = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, role } = req.body;
 
         // 1. Check if user already exists
         let user = await User.findOne({ email });
         if (user) {
             req.flash("error_msg", "Email is already registered. Please log in.");
             return res.redirect("/auth/register");
+        }
+
+        // Validate role (don't allow admin via this form)
+        let userRole = "buyer";
+        if (role === "seller") {
+            userRole = "seller";
         }
 
         // 2. Hash the password
@@ -31,13 +37,27 @@ exports.registerUser = async (req, res) => {
         user = new User({
             name,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            role: userRole
         });
         await user.save();
 
-        // 4. Redirect to login
-        req.flash("success_msg", "Account created successfully! Please log in.");
-        res.redirect("/auth/login");
+        // 4. Automatically log in the new user
+        req.login(user, (err) => {
+            if (err) {
+                console.error(err);
+                req.flash("error_msg", "Account created successfully, but automatic login failed. Please log in.");
+                return res.redirect("/auth/login");
+            }
+            
+            req.flash("success_msg", "Welcome to NeuraCart!");
+            // Role-based redirection
+            if (userRole === "seller") {
+                return res.redirect("http://localhost:3001/seller/dashboard");
+            } else {
+                return res.redirect("http://localhost:3000/");
+            }
+        });
     } catch (err) {
         console.error(err);
         req.flash("error_msg", "An error occurred during registration. Please try again.");
@@ -46,10 +66,23 @@ exports.registerUser = async (req, res) => {
 };
 
 exports.loginUser = (req, res, next) => {
-    passport.authenticate("local", {
-        successRedirect: "/",
-        failureRedirect: "/auth/login",
-        failureFlash: true
+    passport.authenticate("local", (err, user, info) => {
+        if (err) { return next(err); }
+        if (!user) {
+            req.flash("error_msg", info.message || "Invalid email or password.");
+            return res.redirect("/auth/login");
+        }
+        
+        req.logIn(user, (err) => {
+            if (err) { return next(err); }
+            
+            // Role-based redirection
+            if (user.role === "seller") {
+                return res.redirect("http://localhost:3001/seller/dashboard");
+            } else {
+                return res.redirect("http://localhost:3000/");
+            }
+        });
     })(req, res, next);
 };
 
@@ -57,5 +90,29 @@ exports.logoutUser = (req, res, next) => {
     req.logout((err) => {
         if (err) { return next(err); }
         res.redirect("/auth/login");
+    });
+};
+
+exports.renderProfile = (req, res) => {
+    res.render("auth/profile", { 
+        title: "Account Details - NeuraCart",
+        user: req.user,
+        activeTab: 'details'
+    });
+};
+
+exports.renderProfileOrders = (req, res) => {
+    res.render("auth/profile", { 
+        title: "Order History - NeuraCart",
+        user: req.user,
+        activeTab: 'orders'
+    });
+};
+
+exports.renderProfileWishlist = (req, res) => {
+    res.render("auth/profile", { 
+        title: "Wishlist - NeuraCart",
+        user: req.user,
+        activeTab: 'wishlist'
     });
 };

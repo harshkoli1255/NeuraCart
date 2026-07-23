@@ -21,7 +21,10 @@ const reviewSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true
-    }
+    },
+    media: [{
+        type: String // paths to the uploaded files (e.g., /uploads/reviews/filename.jpg)
+    }]
 }, {
     timestamps: true
 });

@@ -60,8 +60,10 @@
 
             <nav class="nc-links" aria-label="Site links">
                 <a href="/shop"    class="nc-link <%= locals.path === '/shop' ? 'active' : '' %>">Shop</a>
+                <% if (!locals.isSeller) { %>
                 <a href="/deals"   class="nc-link <%= locals.path === '/deals' ? 'active' : '' %>">Deals</a>
                 <a href="/ai-picks" class="nc-link <%= locals.path === '/ai-picks' ? 'active' : '' %>">AI Picks</a>
+                <% } %>
             </nav>
         </div>
 
@@ -74,13 +76,18 @@
             </button>
 
             <!-- Cart -->
+            <% if (!locals.isSeller) { %>
             <a href="/cart" class="nc-cart" aria-label="Shopping cart">
                 <i class="fa-solid fa-cart-shopping"></i>
                 <span class="nc-cart-badge"><%= locals.cartCount || 0 %></span>
             </a>
+            <% } %>
 
             <!-- Auth -->
             <% if (locals.user) { %>
+                <% if (locals.isSeller) { %>
+                    <a href="/seller/dashboard" class="nc-link" style="color: var(--cyan); font-weight: 500; margin-right: 12px;">Seller Dashboard</a>
+                <% } %>
                 <a href="/auth/profile" class="nc-login" aria-label="Your account">
                     <%= locals.user.name ? locals.user.name.split(' ')[0] : 'Account' %>
                 </a>
@@ -123,6 +130,7 @@
     <a href="/shop" class="nc-drawer-link">
         <span class="nc-drawer-icon"><i class="fa-solid fa-shop"></i></span> Shop
     </a>
+    <% if (!locals.isSeller) { %>
     <a href="/deals" class="nc-drawer-link">
         <span class="nc-drawer-icon"><i class="fa-solid fa-tags"></i></span> Deals
     </a>
@@ -139,6 +147,7 @@
                 <span style="margin-left:auto;background:var(--grad-purple);color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;"><%= locals.cartCount %></span>
             <% } %>
         </a>
+    <% } %>
         
         <button class="nc-dark-toggle" style="width: auto; padding: 0 16px; flex-shrink: 0; background: var(--surface-2);" aria-label="Toggle dark mode">
             <i class="fa-solid fa-moon"></i>
@@ -148,6 +157,11 @@
     <hr class="nc-drawer-sep">
 
     <% if (locals.user) { %>
+        <% if (locals.isSeller) { %>
+            <a href="/seller/dashboard" class="nc-drawer-link" style="color: var(--cyan); font-weight: 500;">
+                <span class="nc-drawer-icon"><i class="fa-solid fa-gauge-high"></i></span> Seller Dashboard
+            </a>
+        <% } %>
         <a href="/auth/profile" class="nc-drawer-link">
             <span class="nc-drawer-icon"><i class="fa-solid fa-user"></i></span>
             Hi, <%= locals.user.name ? locals.user.name.split(' ')[0] : 'Account' %>

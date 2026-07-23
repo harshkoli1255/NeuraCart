@@ -185,8 +185,17 @@
             var result = await response.json();
             if (!response.ok || !result.success) throw new Error(result.error || 'Unable to add this item to your cart.');
 
+            // Update global cart state
+            let existingItem = window.CART_ITEMS.find(item => item.productId === productId);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                window.CART_ITEMS.push({ productId: productId, quantity: 1 });
+            }
+            
             updateCartCount(result.cartCount);
             showCartNotice(result.message || 'Added to your cart.');
+            renderReactiveCartButtons(); // Reactively update UI
         } catch (error) {
             showCartNotice(error.message || 'Unable to add this item to your cart.', true);
         } finally {
@@ -195,6 +204,101 @@
             if (window.ncReplaceIcons) window.ncReplaceIcons();
         }
     });
+
+    document.addEventListener('click', async function (event) {
+        var qtyBtn = event.target.closest('[data-cart-qty-btn]');
+        if (!qtyBtn) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        
+        var productId = qtyBtn.dataset.productId;
+        var action = qtyBtn.dataset.action; // 'increment' or 'decrement'
+        if (!productId) return;
+        
+        // Find current quantity in state
+        let cartItem = window.CART_ITEMS.find(item => item.productId === productId);
+        if (!cartItem) return;
+        
+        let newQty = action === 'increment' ? cartItem.quantity + 1 : cartItem.quantity - 1;
+        
+        try {
+            if (newQty <= 0) {
+                // Remove item completely
+                var response = await fetch(`/cart/${productId}/remove`, { method: 'POST' });
+                if (response.ok) {
+                    window.CART_ITEMS = window.CART_ITEMS.filter(item => item.productId !== productId);
+                    renderReactiveCartButtons();
+                    // Optional: update cart count by subtracting
+                }
+            } else {
+                // Update item quantity
+                var response = await fetch(`/cart/${productId}/update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ quantity: newQty })
+                });
+                if (response.ok) {
+                    cartItem.quantity = newQty;
+                    renderReactiveCartButtons();
+                }
+            }
+        } catch (e) {
+            console.error("Failed to update quantity", e);
+        }
+    });
+
+    // Function to visually morph "Add to Cart" buttons into quantity controllers if item is in cart
+    function renderReactiveCartButtons() {
+        if (!window.CART_ITEMS) return;
+        
+        document.querySelectorAll('.product-card-footer, .pdp-action-card').forEach(container => {
+            const addBtn = container.querySelector('[data-add-to-cart]');
+            // Some layouts have the button directly inside, some might have it wrapped. Let's find the product ID.
+            if (!addBtn) return;
+            
+            const productId = addBtn.dataset.productId;
+            const inCartItem = window.CART_ITEMS.find(item => item.productId === productId);
+            
+            // If we have a +/- control wrapper already but item was removed, revert to Add To Cart
+            const existingQtyWrap = container.querySelector('.reactive-qty-wrap');
+            
+            if (inCartItem) {
+                // Morph to +/-
+                if (existingQtyWrap) {
+                    existingQtyWrap.querySelector('.reactive-qty-val').textContent = inCartItem.quantity;
+                } else {
+                    addBtn.style.display = 'none'; // Hide "Add to cart"
+                    
+                    const qtyWrap = document.createElement('div');
+                    qtyWrap.className = 'reactive-qty-wrap';
+                    qtyWrap.style = "display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-full); padding: 4px; width: 100%;";
+                    
+                    qtyWrap.innerHTML = `
+                        <button class="nc-btn-icon" data-cart-qty-btn data-action="decrement" data-product-id="${productId}" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--surface); color: var(--text-hi); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <span class="reactive-qty-val" style="font-weight: 600; color: var(--text-hi); font-size: 14px;">${inCartItem.quantity}</span>
+                        <button class="nc-btn-icon" data-cart-qty-btn data-action="increment" data-product-id="${productId}" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--surface); color: var(--text-hi); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    `;
+                    // Insert before the hidden add button
+                    addBtn.parentNode.insertBefore(qtyWrap, addBtn);
+                    if (window.ncReplaceIcons) window.ncReplaceIcons();
+                }
+            } else {
+                // Revert to Add to Cart
+                if (existingQtyWrap) {
+                    existingQtyWrap.remove();
+                }
+                addBtn.style.display = '';
+            }
+        });
+    }
+    
+    // Initial render
+    document.addEventListener('DOMContentLoaded', renderReactiveCartButtons);
 
     /* --------------------------------------------------
        4. HERO SEARCH — focus and fetch

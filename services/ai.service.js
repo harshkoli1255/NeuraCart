@@ -12,6 +12,7 @@ function getClient() {
     }
     return axios.create({
         baseURL: NVIDIA_API_URL,
+        timeout: 10000,
         headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
@@ -26,19 +27,66 @@ function getClient() {
  */
 async function generateEmbedding(text) {
     try {
-        const client = getClient();
-        const response = await client.post('/embeddings', {
-            input: text,
-            model: "NV-Embed-QA",
-            input_type: "passage",
-            encoding_format: "float",
-            truncate: "NONE"
+        const response = await fetch('https://integrate.api.nvidia.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                input: [text],
+                model: "nvidia/nv-embedqa-e5-v5",
+                input_type: "passage",
+                encoding_format: "float"
+            })
         });
-        
-        return response.data.data[0].embedding;
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`NVIDIA API error: ${response.status} ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data.data[0].embedding;
     } catch (error) {
-        console.error("Error generating embedding:", error.response?.data || error.message);
+        console.error("Error generating embedding:", error.message);
         throw new Error("Failed to generate vector embedding");
+    }
+}
+
+/**
+ * Generate Vector Embeddings for a search query
+ * @param {string} text - The text to embed (e.g., product title + description)
+ * @returns {Promise<number[]>} Array of floats representing the vector
+ */
+async function generateQueryEmbedding(text) {
+    try {
+        const response = await fetch('https://integrate.api.nvidia.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                input: [text],
+                model: "nvidia/nv-embedqa-e5-v5",
+                input_type: "query",
+                encoding_format: "float"
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`NVIDIA API error: ${response.status} ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data.data[0].embedding;
+    } catch (error) {
+        console.error("Error generating query embedding:", error.message);
+        throw new Error("Failed to generate vector embedding for query");
     }
 }
 
@@ -121,6 +169,7 @@ async function generateReviewSummary(reviews) {
 
 module.exports = {
     generateEmbedding,
+    generateQueryEmbedding,
     parseNaturalLanguageSearch,
     generateReviewSummary
 };
