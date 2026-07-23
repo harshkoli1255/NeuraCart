@@ -70,6 +70,12 @@ const productSchema = new mongoose.Schema({
         of: String, // e.g. { "color": "Red", "material": "Leather", "fit": "Slim" }
         default: {}
     },
+    visualColor: {
+        type: String,
+        default: '',
+        lowercase: true,
+        trim: true
+    },
     embedding: {
         type: [Number], // For NVIDIA NIM Vector Search
         select: false // Exclude by default from normal queries to save bandwidth

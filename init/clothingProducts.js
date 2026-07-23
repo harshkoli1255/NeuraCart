@@ -1,4 +1,65 @@
 module.exports = [
+  // ==================== RED SHIRTS & CLOTHING ====================
+  {
+    name: "Classic Crimson Red Casual Button-Down Shirt",
+    category: "Clothing",
+    subcategory: "Men - Classic",
+    color: "red",
+    price: 42.99,
+    rating: 4.8,
+    badge: "Trending",
+    image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80",
+    imageDescription: "A stylish crimson red long-sleeve button-down casual shirt crafted from soft premium cotton.",
+    aiTags: ["red", "shirt", "red shirt", "button-down", "clothing", "casual"]
+  },
+  {
+    name: "Oversized Red Graphic Streetwear T-Shirt",
+    category: "Clothing",
+    subcategory: "Men - Gen-Z",
+    color: "red",
+    price: 34.99,
+    rating: 4.9,
+    badge: "Bestseller",
+    image: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80",
+    imageDescription: "An oversized vibrant red heavyweight cotton t-shirt with modern streetwear graphic art.",
+    aiTags: ["red", "shirt", "t-shirt", "tee", "red shirt", "red t-shirt", "clothing", "streetwear"]
+  },
+  {
+    name: "Vintage Red Corduroy Oversized Shirt",
+    category: "Clothing",
+    subcategory: "Men - Gen-Z",
+    color: "red",
+    price: 54.50,
+    rating: 4.7,
+    badge: "Hot",
+    image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80",
+    imageDescription: "A vintage-style deep red corduroy button-up shirt with chest pockets and relaxed drop shoulders.",
+    aiTags: ["red", "shirt", "corduroy", "red shirt", "vintage", "clothing"]
+  },
+  {
+    name: "Red Cotton Oxford Slim Fit Shirt",
+    category: "Clothing",
+    subcategory: "Men - Classic",
+    color: "red",
+    price: 49.99,
+    rating: 4.6,
+    badge: "Popular",
+    image: "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=800&q=80",
+    imageDescription: "A sharp slim-fit red oxford shirt featuring a buttoned collar and curved hem.",
+    aiTags: ["red", "shirt", "oxford", "red shirt", "formal", "clothing"]
+  },
+  {
+    name: "Chic Red Silk Long-Sleeve Shirt",
+    category: "Clothing",
+    subcategory: "Women - Elegance",
+    color: "red",
+    price: 68.00,
+    rating: 4.9,
+    badge: "Must Have",
+    image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80",
+    imageDescription: "An elegant vibrant red silk blouse shirt with a tailored collar and button cuffs.",
+    aiTags: ["red", "shirt", "blouse", "red shirt", "silk", "women", "clothing"]
+  },
   // ==================== MEN'S GEN-Z FASHION (25 Items) ====================
   {
     name: "Oversized Graphic Heavyweight Tee",

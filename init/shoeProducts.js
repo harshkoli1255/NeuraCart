@@ -57,11 +57,23 @@ module.exports = [
   {
     title: "Bata Red Label Casual Slip-Ons",
     brand: "Bata",
-    description: "Ergonomic Memory Tech insoles paired with a flexible canvas body for daily routines.",
+    description: "Ergonomic Memory Tech insoles paired with a flexible canvas body in beige style.",
     category: "daily-wear",
+    color: "beige",
     price: 1999,
     image: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=800&q=80",
     rating: 4.0
+  },
+  {
+    title: "Puma Suede Classic Red Sneakers",
+    brand: "Puma",
+    description: "Timeless suede upper low-profile sneakers in vibrant crimson red for sleek urban street style.",
+    category: "daily-wear",
+    color: "red",
+    aiTags: ["red", "sneakers", "puma", "shoes"],
+    price: 6499,
+    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+    rating: 4.6
   },
   {
     title: "Adidas Advantage Base Lifestyle",
@@ -82,10 +94,12 @@ module.exports = [
     rating: 4.5
   },
   {
-    title: "Nike Tanjun Daily Runners",
+    title: "Nike Tanjun Red Daily Runners",
     brand: "Nike",
-    description: "Simplicity at its best; lightweight breathable mesh upper for easy, comfortable daily wear.",
+    description: "Simplicity at its best; lightweight vibrant red breathable mesh upper for easy, comfortable daily wear.",
     category: "daily-wear",
+    color: "red",
+    aiTags: ["red", "shoes", "runners", "nike", "sneakers"],
     price: 4995,
     image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
     rating: 4.6
@@ -240,8 +254,10 @@ module.exports = [
   {
     title: "Red Tape Burnished Formal Dress Shoes",
     brand: "Red Tape",
-    description: "Sharp square-toe lace-up formal shoes crafted with genuine leather uppers.",
+    description: "Sharp square-toe lace-up formal dress shoes crafted with genuine teal green leather uppers.",
     category: "formal-wear",
+    color: "teal",
+    aiTags: ["teal", "green", "formal", "dress shoes"],
     price: 2499,
     image: "https://images.unsplash.com/photo-1560343090-f0409e92791a?auto=format&fit=crop&w=800&q=80",
     rating: 3.9
@@ -312,8 +328,10 @@ module.exports = [
   {
     title: "Ruosh Textured Leather Penny Loafers",
     brand: "Ruosh",
-    description: "Textured croco-embossed leather loafers engineered with flexible Goodyear welt construction.",
+    description: "Textured croco-embossed leather loafers engineered with flexible Goodyear welt construction in olive green shade.",
     category: "formal-wear",
+    color: "olive",
+    aiTags: ["olive", "green", "loafers", "formal-wear", "shoes"],
     price: 8490,
     image: "https://images.unsplash.com/photo-1582588678413-dbf45f4823e9?auto=format&fit=crop&w=800&q=80",
     rating: 4.5

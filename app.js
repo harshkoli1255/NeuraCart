@@ -144,10 +144,52 @@ app.get("/shop", async (req, res, next) => {
         }
 
         if (q) {
-            const pat = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-            query.$or = [
-                { name: pat }, { title: pat }, { description: pat }, { aiTags: pat }
-            ];
+            const trimmedQ = q.trim();
+            const colors = ['red', 'blue', 'black', 'white', 'green', 'yellow', 'pink', 'purple', 'brown', 'orange', 'grey', 'gray', 'gold', 'silver', 'navy', 'beige', 'maroon', 'tan', 'crimson'];
+            const foundColor = colors.find(c => new RegExp(`\\b${c}\\b`, 'i').test(trimmedQ));
+            
+            if (foundColor) {
+                const colorRegex = new RegExp(`\\b${foundColor}\\b`, 'i');
+                const colorFilter = {
+                    $or: [
+                        { title: colorRegex },
+                        { name: colorRegex },
+                        { description: colorRegex },
+                        { imageDescription: colorRegex },
+                        { aiTags: colorRegex },
+                        { subcategory: colorRegex },
+                        { brand: colorRegex }
+                    ]
+                };
+
+                const restWords = trimmedQ.toLowerCase()
+                    .replace(new RegExp(`\\b${foundColor}\\b`, 'i'), '')
+                    .replace(/[^a-z0-9\s]/g, '')
+                    .trim()
+                    .split(/\s+/)
+                    .filter(w => w.length > 2 && !['show', 'the', 'for', 'buy', 'get', 'with', 'and'].includes(w));
+
+                if (restWords.length > 0) {
+                    const wordFilters = restWords.map(w => ({
+                        $or: [
+                            { title: new RegExp(w, 'i') },
+                            { name: new RegExp(w, 'i') },
+                            { description: new RegExp(w, 'i') },
+                            { subcategory: new RegExp(w, 'i') },
+                            { brand: new RegExp(w, 'i') },
+                            { aiTags: new RegExp(w, 'i') }
+                        ]
+                    }));
+                    query.$and = [colorFilter, ...wordFilters];
+                } else {
+                    Object.assign(query, colorFilter);
+                }
+            } else {
+                const pat = new RegExp(trimmedQ.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+                query.$or = [
+                    { name: pat }, { title: pat }, { description: pat }, { aiTags: pat }, { subcategory: pat }, { brand: pat }
+                ];
+            }
         }
 
         let sortOption = { isFeatured: -1, createdAt: -1 };
