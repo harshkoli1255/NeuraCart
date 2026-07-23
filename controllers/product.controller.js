@@ -530,45 +530,49 @@ Respond ONLY with a JSON array of the 4 best matching product IDs (strings). E.g
 exports.getCategoryPage = async (req, res, next) => {
     try {
         const { categoryName } = req.params;
-        const { subcategory, sort } = req.query;
+        const { sort, page } = req.query;
+
+        // Fetch all categories for the UI
+        const categories = await Category.find().sort({ name: 1 });
 
         // Find the category (case-insensitive)
-        const category = await Category.findOne({
-            name: { $regex: new RegExp(`^${categoryName}$`, 'i') }
-        });
+        const category = categories.find(c => c.slug.toLowerCase() === categoryName.toLowerCase() || c.name.toLowerCase() === categoryName.toLowerCase());
 
         if (!category) {
             return res.status(404).render('404', { title: 'Category Not Found' });
         }
 
-        // Distinctly fetch all unique subcategories for this category (for sidebar)
-        const subcategories = await Product.distinct('subcategory', { category: category._id });
-
         // Build product query
-        let query = { category: category._id };
-        if (subcategory) {
-            query.subcategory = subcategory;
-        }
+        const query = { 
+            image: { $exists: true, $ne: "" }, 
+            title: { $exists: true, $ne: "" },
+            category: category._id 
+        };
 
         // Build sort option
-        let sortOption = {};
-        if (sort === 'low') {
-            sortOption.price = 1;
-        } else if (sort === 'high') {
-            sortOption.price = -1;
-        }
+        let sortOption = { isFeatured: -1, createdAt: -1 };
+        if (sort === "price-low") sortOption = { price: 1 };
+        if (sort === "price-high") sortOption = { price: -1 };
+
+        const limit = 12; // Products per page
+        const currentPage = parseInt(page) || 1;
+        const skip = (currentPage - 1) * limit;
+
+        const totalProducts = await Product.countDocuments(query);
+        const hasNextPage = (skip + limit) < totalProducts;
 
         // Fetch products
-        const products = await Product.find(query).sort(sortOption).populate('category');
+        const products = await Product.find(query).populate('category').sort(sortOption).skip(skip).limit(limit);
 
-        res.render('category', {
+        res.render('shop', {
             title: `${category.name} - NeuraCart`,
-            category,
             products,
-            subcategories,
-            selectedSubcategory: subcategory || '',
-            selectedSort: sort || '',
-            categoryName: category.name
+            categories,
+            activeCategory: category.slug, // normalized to DB slug (lowercase)
+            activeSort: sort || "popular",
+            searchQuery: "",
+            hasNextPage,
+            currentPage
         });
     } catch (error) {
         next(error);

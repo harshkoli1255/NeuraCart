@@ -138,9 +138,13 @@ app.get("/shop", async (req, res, next) => {
         const categories = await Category.find().sort({ name: 1 });
         const query = { image: { $exists: true, $ne: "" }, title: { $exists: true, $ne: "" } };
 
+        let activeCategorySlug = "";
         if (category) {
-            const selected = categories.find(c => c.slug === category);
-            if (selected) query.category = selected._id;
+            const selected = categories.find(c => c.slug.toLowerCase() === category.toLowerCase() || c.name.toLowerCase() === category.toLowerCase());
+            if (selected) {
+                query.category = selected._id;
+                activeCategorySlug = selected.slug;
+            }
         }
 
         if (q) {
@@ -217,7 +221,7 @@ app.get("/shop", async (req, res, next) => {
         res.render("shop", {
             title: "Shop - NeuraCart",
             products, categories,
-            activeCategory: category || "",
+            activeCategory: activeCategorySlug,
             activeSort: sort || "popular",
             searchQuery: q || "",
             hasNextPage,
