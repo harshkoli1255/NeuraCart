@@ -81,20 +81,297 @@
             <% } %>
 
             <% if (activeTab === 'orders' && user.role === 'buyer') { %>
-                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 32px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                        <h3 style="font-size: 20px; font-weight: 600; color: var(--text-hi);">Order History</h3>
+                <div class="orders-tab-wrap">
+                    <div class="orders-tab-header">
+                        <h3 class="orders-tab-title">
+                            <i class="fa-solid fa-box-open" style="color:var(--purple-lt);"></i>
+                            Order History
+                        </h3>
+                        <% if (locals.orders && orders.length > 0) { %>
+                            <span class="orders-count-badge"><%= orders.length %> Order<%= orders.length !== 1 ? 's' : '' %></span>
+                        <% } %>
                     </div>
-                    <div style="text-align: center; padding: 60px 20px;">
-                        <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 32px; color: var(--text-lo);">
-                            <i class="fa-solid fa-box"></i>
+
+                    <% if (!locals.orders || orders.length === 0) { %>
+                        <!-- Premium Empty State -->
+                        <div class="orders-empty-state">
+                            <div class="orders-empty-illustration">
+                                <i class="fa-solid fa-bag-shopping"></i>
+                            </div>
+                            <h4 class="orders-empty-title">You haven't placed any orders yet</h4>
+                            <p class="orders-empty-subtitle">When you purchase items, your complete order history, tracking details, and invoices will appear here.</p>
+                            <a href="/shop" class="nc-cta orders-empty-cta">
+                                <i class="fa-solid fa-sparkles"></i> Start Shopping
+                            </a>
                         </div>
-                        <p style="color: var(--text-hi); font-size: 18px; font-weight: 600; margin-bottom: 12px;">No orders yet</p>
-                        <p style="color: var(--text-lo); font-size: 15px; margin-bottom: 32px; max-width: 400px; margin-left: auto; margin-right: auto;">When you purchase items, your complete order history, tracking details, and invoices will appear here.</p>
-                        <a href="/shop" class="nc-btn-secondary">Start Shopping</a>
-                    </div>
+
+                    <% } else { %>
+                        <div class="orders-list">
+                            <% orders.forEach((order) => {
+                                const statusColors = {
+                                    'Processing':      { bg: 'rgba(251,146,60,0.12)', color: '#fb923c',  icon: 'fa-clock' },
+                                    'Confirmed':       { bg: 'rgba(34,211,238,0.12)',  color: '#22d3ee',  icon: 'fa-circle-check' },
+                                    'Shipped':         { bg: 'rgba(139,92,246,0.12)',  color: '#a78bfa',  icon: 'fa-truck' },
+                                    'Out for Delivery':{ bg: 'rgba(59,130,246,0.12)',  color: '#60a5fa',  icon: 'fa-truck-fast' },
+                                    'Delivered':       { bg: 'rgba(16,185,129,0.12)',  color: '#10b981',  icon: 'fa-circle-check' },
+                                    'Cancelled':       { bg: 'rgba(239,68,68,0.12)',   color: '#f87171',  icon: 'fa-xmark-circle' }
+                                };
+                                const payColors = {
+                                    'Paid':    { bg: 'rgba(16,185,129,0.12)',  color: '#10b981' },
+                                    'Pending': { bg: 'rgba(251,146,60,0.12)', color: '#fb923c' },
+                                    'Failed':  { bg: 'rgba(239,68,68,0.12)',  color: '#f87171' }
+                                };
+                                const sc = statusColors[order.orderStatus] || statusColors['Processing'];
+                                const pc = payColors[order.paymentStatus]  || payColors['Pending'];
+                                const orderDate = new Date(order.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+                                const deliveryDate = order.estimatedDelivery
+                                    ? new Date(order.estimatedDelivery).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+                                    : 'N/A';
+                                const cancellable = ['Processing','Confirmed'].includes(order.orderStatus);
+                                const shortId = order._id.toString().slice(-8).toUpperCase();
+
+                                // Get the first product for preview
+                                const firstItem = order.items && order.items[0];
+                                const firstProduct = firstItem && firstItem.product;
+                                const firstImage = firstProduct && (firstProduct.image || (firstProduct.images && firstProduct.images[0])) || '/images/favicon.png';
+                            %>
+                            <div class="order-card" id="order-card-<%= order._id %>">
+                                <!-- Order Card Header -->
+                                <div class="order-card-header">
+                                    <div class="order-id-wrap">
+                                        <span class="order-label">Order ID</span>
+                                        <span class="order-id">#<%= shortId %></span>
+                                    </div>
+                                    <div class="order-meta-pills">
+                                        <span class="order-date"><i class="fa-regular fa-calendar"></i> <%= orderDate %></span>
+                                        <span class="status-badge" style="background:<%= sc.bg %>; color:<%= sc.color %>;">
+                                            <i class="fa-solid <%= sc.icon %>"></i> <%= order.orderStatus %>
+                                        </span>
+                                        <span class="status-badge" style="background:<%= pc.bg %>; color:<%= pc.color %>;">
+                                            <i class="fa-solid fa-credit-card"></i> <%= order.paymentStatus %>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Products List -->
+                                <div class="order-items-list">
+                                    <% order.items.forEach((item, idx) => {
+                                        const prod = item.product;
+                                        if (!prod) return;
+                                        const img = prod.image || (prod.images && prod.images[0]) || '/images/favicon.png';
+                                        const name = prod.title || 'Product';
+                                    %>
+                                    <div class="order-item-row">
+                                        <div class="order-item-image">
+                                            <img src="<%= img %>" alt="<%= name %>" loading="lazy" onerror="this.src='/images/favicon.png'">
+                                        </div>
+                                        <div class="order-item-info">
+                                            <p class="order-item-name"><%= name %></p>
+                                            <p class="order-item-meta">
+                                                Qty: <strong><%= item.quantity %></strong>
+                                                &nbsp;·&nbsp;
+                                                ₹<%= item.price.toFixed(2) %> each
+                                            </p>
+                                        </div>
+                                        <div class="order-item-subtotal">
+                                            ₹<%= (item.price * item.quantity).toFixed(2) %>
+                                        </div>
+                                    </div>
+                                    <% }) %>
+                                </div>
+
+                                <!-- Order Footer -->
+                                <div class="order-card-footer">
+                                    <div class="order-footer-left">
+                                        <div class="order-footer-detail">
+                                            <i class="fa-solid fa-truck" style="color:var(--purple-lt);"></i>
+                                            <span>Est. Delivery: <strong><%= deliveryDate %></strong></span>
+                                        </div>
+                                        <div class="order-footer-detail">
+                                            <i class="fa-solid fa-location-dot" style="color:var(--cyan);"></i>
+                                            <span><%= order.shippingAddress ? order.shippingAddress.city + ', ' + order.shippingAddress.state : 'N/A' %></span>
+                                        </div>
+                                    </div>
+                                    <div class="order-total-wrap">
+                                        <span class="order-total-label">Total</span>
+                                        <span class="order-total-amount">₹<%= order.totalAmount.toFixed(2) %></span>
+                                    </div>
+                                </div>
+
+                                <!-- Order Timeline -->
+                                <% 
+                                    const allStatuses = ['Processing','Confirmed','Shipped','Out for Delivery','Delivered'];
+                                    const currentIdx = allStatuses.indexOf(order.orderStatus);
+                                    const isCancelled = order.orderStatus === 'Cancelled';
+                                %>
+                                <% if (!isCancelled) { %>
+                                <div class="order-timeline">
+                                    <% allStatuses.forEach((st, si) => {
+                                        const isDone   = si <= currentIdx;
+                                        const isActive = si === currentIdx;
+                                    %>
+                                    <div class="timeline-step <%= isDone ? 'done' : '' %> <%= isActive ? 'active' : '' %>">
+                                        <div class="timeline-dot">
+                                            <% if (isDone) { %><i class="fa-solid fa-check"></i><% } %>
+                                        </div>
+                                        <span class="timeline-label"><%= st %></span>
+                                        <% if (si < allStatuses.length - 1) { %><div class="timeline-line <%= isDone && si < currentIdx ? 'done' : '' %>"></div><% } %>
+                                    </div>
+                                    <% }) %>
+                                </div>
+                                <% } %>
+
+                                <!-- Action Buttons -->
+                                <div class="order-actions">
+                                    <a href="/product/<%= firstProduct ? firstProduct._id : '#' %>" class="order-action-btn order-action-view">
+                                        <i class="fa-solid fa-eye"></i> View Details
+                                    </a>
+                                    <% if (!isCancelled) { %>
+                                    <button class="order-action-btn order-action-track" onclick="window.location.href='/auth/profile/orders'">
+                                        <i class="fa-solid fa-location-arrow"></i> Track Order
+                                    </button>
+                                    <% } %>
+                                    <% if (firstProduct) { %>
+                                    <a href="/product/<%= firstProduct._id %>" class="order-action-btn order-action-again">
+                                        <i class="fa-solid fa-rotate-right"></i> Buy Again
+                                    </a>
+                                    <% } %>
+                                    <button class="order-action-btn order-action-invoice" onclick="alert('Invoice download coming soon!')">
+                                        <i class="fa-solid fa-file-invoice"></i> Invoice
+                                    </button>
+                                    <% if (cancellable) { %>
+                                    <button class="order-action-btn order-action-cancel"
+                                        onclick="cancelOrder('<%= order._id %>', '<%= shortId %>', this)">
+                                        <i class="fa-solid fa-xmark"></i> Cancel Order
+                                    </button>
+                                    <% } %>
+                                </div>
+                            </div>
+                            <% }) %>
+                        </div>
+                    <% } %>
                 </div>
+
+                <style>
+                .orders-tab-wrap { }
+                .orders-tab-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+                .orders-tab-title { font-size:20px; font-weight:700; color:var(--text-hi); margin:0; display:flex; align-items:center; gap:10px; }
+                .orders-count-badge { padding:4px 12px; border-radius:999px; background:rgba(139,92,246,0.12); color:var(--purple-lt); font-size:13px; font-weight:700; border:1px solid rgba(139,92,246,0.2); }
+
+                /* Empty State */
+                .orders-empty-state { text-align:center; padding:72px 24px; }
+                .orders-empty-illustration { width:96px; height:96px; border-radius:50%; background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(34,211,238,0.10)); display:flex; align-items:center; justify-content:center; margin:0 auto 24px; font-size:40px; color:var(--purple-lt); border:1px solid rgba(139,92,246,0.2); }
+                .orders-empty-title { font-size:22px; font-weight:700; color:var(--text-hi); margin-bottom:10px; }
+                .orders-empty-subtitle { color:var(--text-lo); font-size:14px; max-width:380px; margin:0 auto 28px; line-height:1.7; }
+                .orders-empty-cta { display:inline-flex; align-items:center; gap:8px; padding:0 28px; height:46px; font-size:14px; border-radius:999px; text-decoration:none; }
+
+                /* Order List */
+                .orders-list { display:flex; flex-direction:column; gap:20px; }
+
+                /* Order Card */
+                .order-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden; transition:box-shadow 0.2s; }
+                .order-card:hover { box-shadow:0 4px 24px rgba(0,0,0,0.18); }
+
+                /* Card Header */
+                .order-card-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border-2); background:var(--surface-2); flex-wrap:wrap; gap:10px; }
+                .order-id-wrap { display:flex; flex-direction:column; gap:2px; }
+                .order-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-lo); }
+                .order-id { font-size:15px; font-weight:800; color:var(--text-hi); font-family:'Outfit',sans-serif; }
+                .order-meta-pills { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+                .order-date { font-size:12px; color:var(--text-md); display:flex; align-items:center; gap:5px; }
+                .status-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+
+                /* Items */
+                .order-items-list { padding:0 20px; }
+                .order-item-row { display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--border-2); }
+                .order-item-row:last-child { border-bottom:none; }
+                .order-item-image { width:56px; height:56px; border-radius:10px; overflow:hidden; flex-shrink:0; background:var(--surface-2); border:1px solid var(--border); }
+                .order-item-image img { width:100%; height:100%; object-fit:cover; }
+                .order-item-info { flex:1; min-width:0; }
+                .order-item-name { font-size:14px; font-weight:600; color:var(--text-hi); margin:0 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                .order-item-meta { font-size:12px; color:var(--text-lo); margin:0; }
+                .order-item-subtotal { font-size:14px; font-weight:700; color:var(--text-hi); flex-shrink:0; }
+
+                /* Footer */
+                .order-card-footer { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:var(--surface-2); border-top:1px solid var(--border-2); flex-wrap:wrap; gap:12px; }
+                .order-footer-left { display:flex; flex-direction:column; gap:6px; }
+                .order-footer-detail { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-md); }
+                .order-total-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+                .order-total-label { font-size:11px; font-weight:600; color:var(--text-lo); text-transform:uppercase; letter-spacing:0.06em; }
+                .order-total-amount { font-size:22px; font-weight:800; color:var(--text-hi); font-family:'Outfit',sans-serif; }
+
+                /* Timeline */
+                .order-timeline { display:flex; align-items:flex-start; padding:16px 20px; gap:0; overflow-x:auto; }
+                .timeline-step { display:flex; flex-direction:column; align-items:center; position:relative; flex:1; min-width:80px; }
+                .timeline-dot { width:28px; height:28px; border-radius:50%; background:var(--surface-2); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--text-lo); z-index:1; transition:all 0.3s; }
+                .timeline-step.done .timeline-dot { background:var(--purple-lt); border-color:var(--purple-lt); color:#fff; }
+                .timeline-step.active .timeline-dot { box-shadow:0 0 0 4px rgba(139,92,246,0.2); }
+                .timeline-label { font-size:10px; color:var(--text-lo); margin-top:6px; text-align:center; white-space:nowrap; }
+                .timeline-step.done .timeline-label { color:var(--purple-lt); font-weight:600; }
+                .timeline-line { position:absolute; top:14px; left:50%; right:-50%; height:2px; background:var(--border); z-index:0; }
+                .timeline-line.done { background:var(--purple-lt); }
+
+                /* Actions */
+                .order-actions { display:flex; align-items:center; gap:8px; padding:14px 20px; border-top:1px solid var(--border-2); flex-wrap:wrap; }
+                .order-action-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; border:none; transition:all 0.18s; text-decoration:none; }
+                .order-action-view    { background:rgba(139,92,246,0.12); color:var(--purple-lt); }
+                .order-action-track   { background:rgba(34,211,238,0.10); color:var(--cyan); }
+                .order-action-again   { background:rgba(16,185,129,0.10); color:#10b981; }
+                .order-action-invoice { background:var(--surface-2); color:var(--text-md); border:1px solid var(--border); }
+                .order-action-cancel  { background:rgba(239,68,68,0.10); color:#f87171; margin-left:auto; }
+                .order-action-btn:hover { transform:translateY(-1px); opacity:0.9; }
+                .order-action-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+                @media (max-width:640px) {
+                    .order-card-header, .order-card-footer, .order-actions { flex-direction:column; align-items:flex-start; }
+                    .order-total-wrap { align-items:flex-start; }
+                    .order-action-cancel { margin-left:0; }
+                }
+                </style>
+
+                <script>
+                async function cancelOrder(orderId, shortId, btn) {
+                    if (!confirm('Cancel order #' + shortId + '? This cannot be undone.')) return;
+                    btn.disabled = true;
+                    var orig = btn.innerHTML;
+                    btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid #f87171;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;"></span> Cancelling…';
+                    try {
+                        var resp = await fetch('/cart/orders/' + orderId + '/cancel', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                            credentials: 'same-origin'
+                        });
+                        var data = await resp.json();
+                        if (!resp.ok || !data.success) throw new Error(data.error || 'Cancellation failed.');
+                        // Update UI without reload
+                        var card = document.getElementById('order-card-' + orderId);
+                        if (card) {
+                            var statusBadges = card.querySelectorAll('.status-badge');
+                            if (statusBadges[0]) {
+                                statusBadges[0].style.background = 'rgba(239,68,68,0.12)';
+                                statusBadges[0].style.color = '#f87171';
+                                statusBadges[0].innerHTML = '<i class="fa-solid fa-xmark-circle"></i> Cancelled';
+                            }
+                            // Remove cancel btn
+                            btn.parentElement.removeChild(btn);
+                            // Remove timeline
+                            var timeline = card.querySelector('.order-timeline');
+                            if (timeline) timeline.remove();
+                        }
+                        var notice = document.createElement('div');
+                        notice.className = 'cart-notice';
+                        notice.textContent = data.message || 'Order cancelled.';
+                        document.body.appendChild(notice);
+                        setTimeout(function() { notice.remove(); }, 4000);
+                    } catch (err) {
+                        btn.disabled = false;
+                        btn.innerHTML = orig;
+                        alert(err.message || 'Could not cancel order. Please try again.');
+                    }
+                }
+                </script>
             <% } %>
+
 
             <% if (activeTab === 'wishlist' && user.role === 'buyer') { %>
                 <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 32px;">

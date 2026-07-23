@@ -121,9 +121,13 @@ const productRoutes = require("./routes/product.routes");
 const categoryRoutes = require("./routes/category.routes");
 const cartRoutes = require('./routes/cart.routes');
 const sellerRoutes = require('./routes/seller.routes');
+const searchRoutes = require("./routes/search.routes");
+const dealAlertRoutes = require("./routes/dealAlert.routes");
 
 app.use("/auth", authRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/search", searchRoutes);
+app.use("/api/deals/alerts", dealAlertRoutes);
 app.use("/category", categoryRoutes);
 app.use('/cart', cartRoutes);
 app.use('/seller', sellerRoutes);
@@ -258,12 +262,8 @@ app.get("/deals", async (req, res) => {
             featuredDeal ? p._id.toString() !== featuredDeal._id.toString() : true
         ).slice(8);
 
-        // Get unique categories from deal products for filter pills
-        const dealCategories = [...new Map(
-            allProducts
-                .filter(p => p.category && p.category.name)
-                .map(p => [p.category.name, p.category])
-        ).values()];
+        // Get all categories from MongoDB Category collection
+        const dealCategories = await Category.find().sort({ name: 1 });
 
         res.render("deals", { 
             title: "Today's Deals - NeuraCart", 
@@ -271,7 +271,9 @@ app.get("/deals", async (req, res) => {
             flashDeals,
             moreDeals,
             dealCategories,
-            totalDeals: allProducts.length
+            totalDeals: allProducts.length,
+            activeCategory: req.query.category || 'all',
+            activeDiscount: parseInt(req.query.discount, 10) || 0
         });
     } catch (err) {
         console.error(err);
@@ -283,6 +285,56 @@ app.get("/deals", async (req, res) => {
             dealCategories: [],
             totalDeals: 0
         });
+    }
+});
+
+// ── Deals Filter API ─────────────────────────────────────────────────────────
+// Synthetic discount pool mirrors the EJS display order for visual consistency
+const DEAL_DISCOUNTS_POOL = [55, 42, 38, 30, 48, 35, 25, 60, 20, 33, 28, 45, 22, 40, 15, 50, 35, 18];
+
+app.get("/api/deals/filter", async (req, res) => {
+    try {
+        const categoryName = (req.query.category || 'all').trim();
+        const minDiscount  = Math.max(0, parseInt(req.query.discount, 10) || 0);
+
+        let productQuery = { image: { $exists: true, $ne: "" } };
+
+        if (categoryName !== 'all') {
+            const cat = await Category.findOne({ name: { $regex: new RegExp(`^${categoryName}$`, 'i') } });
+            if (!cat) {
+                return res.json({ success: true, products: [], count: 0, category: categoryName, discount: minDiscount });
+            }
+            productQuery.category = cat._id;
+        }
+
+        const allMatched = await Product.find(productQuery)
+            .populate('category')
+            .sort({ price: 1 })
+            .limit(80)
+            .lean();
+
+        // Assign synthetic discounts and filter by minDiscount threshold
+        const productsWithDiscount = allMatched
+            .map((p, idx) => {
+                const disc = DEAL_DISCOUNTS_POOL[idx % DEAL_DISCOUNTS_POOL.length];
+                return {
+                    ...p,
+                    _syntheticDiscount: disc,
+                    _originalPrice: parseFloat((p.price / (1 - disc / 100)).toFixed(2))
+                };
+            })
+            .filter(p => p._syntheticDiscount >= minDiscount);
+
+        return res.json({
+            success: true,
+            products: productsWithDiscount,
+            count: productsWithDiscount.length,
+            category: categoryName,
+            discount: minDiscount
+        });
+    } catch (err) {
+        console.error("Deals Filter API Error:", err);
+        return res.status(500).json({ success: false, error: 'Filter failed. Please try again.' });
     }
 });
 

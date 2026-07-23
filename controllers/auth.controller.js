@@ -51,12 +51,18 @@ exports.registerUser = async (req, res) => {
             }
             
             req.flash("success_msg", "Welcome to NeuraCart!");
-            // Role-based redirection
-            if (userRole === "seller") {
-                return res.redirect("http://localhost:3001/seller/dashboard");
-            } else {
-                return res.redirect("http://localhost:3000/");
-            }
+            req.session.save((err) => {
+                if (err) {
+                    console.error(err);
+                    return next(err);
+                }
+                // Role-based redirection
+                if (userRole === "seller") {
+                    return res.redirect("http://localhost:3001/seller/dashboard");
+                } else {
+                    return res.redirect("http://localhost:3000/");
+                }
+            });
         });
     } catch (err) {
         console.error(err);
@@ -75,13 +81,15 @@ exports.loginUser = (req, res, next) => {
         
         req.logIn(user, (err) => {
             if (err) { return next(err); }
-            
-            // Role-based redirection
-            if (user.role === "seller") {
-                return res.redirect("http://localhost:3001/seller/dashboard");
-            } else {
-                return res.redirect("http://localhost:3000/");
-            }
+            req.session.save((err) => {
+                if (err) { return next(err); }
+                // Role-based redirection
+                if (user.role === "seller") {
+                    return res.redirect("http://localhost:3001/seller/dashboard");
+                } else {
+                    return res.redirect("http://localhost:3000/");
+                }
+            });
         });
     })(req, res, next);
 };
@@ -101,12 +109,31 @@ exports.renderProfile = (req, res) => {
     });
 };
 
-exports.renderProfileOrders = (req, res) => {
-    res.render("auth/profile", { 
-        title: "Order History - NeuraCart",
-        user: req.user,
-        activeTab: 'orders'
-    });
+exports.renderProfileOrders = async (req, res) => {
+    try {
+        const Order = require('../models/Order');
+        const orders = await Order.find({ user: req.user._id })
+            .populate({
+                path: 'items.product',
+                select: 'title image images price category brand'
+            })
+            .sort({ createdAt: -1 });
+
+        res.render("auth/profile", {
+            title: "Order History - NeuraCart",
+            user: req.user,
+            activeTab: 'orders',
+            orders
+        });
+    } catch (err) {
+        console.error("Render Profile Orders Error:", err);
+        res.render("auth/profile", {
+            title: "Order History - NeuraCart",
+            user: req.user,
+            activeTab: 'orders',
+            orders: []
+        });
+    }
 };
 
 exports.renderProfileWishlist = (req, res) => {

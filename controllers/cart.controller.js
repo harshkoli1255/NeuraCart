@@ -138,3 +138,166 @@ exports.removeItem = (req, res) => {
         cartCount: getCartCount(nextCart)
     });
 };
+
+exports.renderCheckout = async (req, res, next) => {
+    try {
+        const items = await getDetailedCart(req);
+        if (items.length === 0) {
+            req.flash('error_msg', 'Your cart is empty. Add products to checkout.');
+            return res.redirect('/cart');
+        }
+
+        const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+        const tax = subtotal * 0.18; // 18% GST
+        const total = subtotal + tax;
+
+        res.render('checkout', {
+            title: 'Secure Checkout | NeuraCart',
+            cart: { items },
+            subtotal,
+            tax,
+            total
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.handleCheckout = async (req, res, next) => {
+    try {
+        const { fullName, address, city, state, zip } = req.body;
+        
+        // Validation
+        if (!fullName || !address || !city || !state || !zip) {
+            return res.status(400).json({ success: false, error: 'Please fill in all required shipping fields.' });
+        }
+        
+        // Load detailed cart items
+        const items = await getDetailedCart(req);
+        if (items.length === 0) {
+            return res.status(400).json({ success: false, error: 'Your cart is empty.' });
+        }
+        
+        // Inventory stock verification
+        for (const item of items) {
+            const product = await Product.findById(item.product._id);
+            if (!product) {
+                return res.status(404).json({ success: false, error: `Product "${item.product.title}" no longer exists.` });
+            }
+            if (product.stock < item.quantity) {
+                return res.status(400).json({ success: false, error: `Insufficient stock for "${item.product.title}". Only ${product.stock} available.` });
+            }
+        }
+        
+        // Calculate amount
+        const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+        const tax = subtotal * 0.18; // 18% GST
+        const total = subtotal + tax;
+        
+        // Create Order record in DB
+        const Order = require('../models/Order');
+        const order = new Order({
+            user: req.user._id,
+            items: items.map(item => ({
+                product: item.product._id,
+                quantity: item.quantity,
+                price: item.product.price
+            })),
+            totalAmount: total,
+            shippingAddress: {
+                fullName,
+                address,
+                city,
+                state,
+                zipCode: zip,
+                country: 'India'
+            },
+            paymentStatus: 'Paid',
+            orderStatus: 'Processing'
+        });
+        
+        await order.save();
+        
+        // Reduce stock in DB
+        for (const item of items) {
+            await Product.findByIdAndUpdate(item.product._id, {
+                $inc: { stock: -item.quantity }
+            });
+        }
+        
+        // Clear Cart in Session & DB
+        req.session.cart = [];
+        const Cart = require('../models/Cart');
+        await Cart.deleteOne({ user: req.user._id });
+        
+        // Persist session explicitly
+        req.session.save((err) => {
+            if (err) {
+                console.error("Session save error during checkout:", err);
+            }
+            return res.status(200).json({
+                success: true,
+                message: 'Order placed successfully!',
+                orderId: order._id
+            });
+        });
+        
+    } catch (error) {
+        console.error("Checkout Handler Error:", error);
+        return res.status(500).json({ success: false, error: 'Checkout process failed. Please try again.' });
+    }
+};
+
+exports.renderCheckoutSuccess = async (req, res, next) => {
+    try {
+        res.render('checkout-success', {
+            title: 'Order Placed Successfully | NeuraCart'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.cancelOrder = async (req, res, next) => {
+    try {
+        const Order = require('../models/Order');
+        const { orderId } = req.params;
+
+        if (!mongoose.isValidObjectId(orderId)) {
+            return res.status(400).json({ success: false, error: 'Invalid order ID.' });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, error: 'Order not found.' });
+        }
+
+        // Ensure the order belongs to the current user
+        if (order.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, error: 'Access denied.' });
+        }
+
+        // Only allow cancellation if not yet shipped
+        const cancellableStatuses = ['Processing', 'Confirmed'];
+        if (!cancellableStatuses.includes(order.orderStatus)) {
+            return res.status(400).json({ success: false, error: `Order cannot be cancelled — it is already ${order.orderStatus}.` });
+        }
+
+        // Restore stock
+        for (const item of order.items) {
+            await Product.findByIdAndUpdate(item.product, {
+                $inc: { stock: item.quantity }
+            });
+        }
+
+        order.orderStatus = 'Cancelled';
+        order.paymentStatus = 'Failed'; // treat as refund-pending
+        await order.save();
+
+        return res.json({ success: true, message: 'Order cancelled successfully. Refund will be processed in 3–5 business days.' });
+    } catch (error) {
+        console.error('Cancel Order Error:', error);
+        return res.status(500).json({ success: false, error: 'Failed to cancel order. Please try again.' });
+    }
+};
+

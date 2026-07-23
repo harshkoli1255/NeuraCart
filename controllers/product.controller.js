@@ -32,437 +32,184 @@ exports.getProductById = async (req, res, next) => {
 exports.aiSearch = async (req, res, next) => {
     try {
         const { query } = req.body;
-        if (!query || typeof query !== 'string' || !query.trim()) {
-            return res.status(400).json({ success: false, error: 'Query is required' });
+        if (!query || !query.trim()) {
+            return res.status(400).json({ success: false, error: 'Please enter a product name or description.' });
+        }
+        const trimmedQuery = query.trim();
+        console.log(`[AI Search] Query: "${trimmedQuery}"`);
+
+        // ── Step 1: Parse natural language with NVIDIA NIM ──────────────────
+        let parsed = { keywords: [trimmedQuery], maxPrice: null, category: null };
+        let aiExplanation = '';
+
+        const apiKey = process.env.NVIDIA_API_KEY;
+        if (apiKey) {
+            try {
+                const { parseNaturalLanguageSearch } = require('../services/ai.service');
+                parsed = await parseNaturalLanguageSearch(trimmedQuery);
+                console.log('[AI Search] Parsed intent:', JSON.stringify(parsed));
+            } catch (parseErr) {
+                console.warn('[AI Search] NLP parse failed, using raw query as fallback:', parseErr.message);
+                // Fallback: extract price from query manually
+                const priceMatch = trimmedQuery.match(/(?:under|below|less than|within|upto|up to)\s*[₹$]?\s*(\d[\d,]*)/i);
+                if (priceMatch) {
+                    parsed.maxPrice = parseInt(priceMatch[1].replace(/,/g, ''), 10);
+                }
+                // Use all non-stopword words as keywords
+                parsed.keywords = trimmedQuery
+                    .replace(/[₹$]/g, '')
+                    .split(/\s+/)
+                    .filter(w => !['under','below','best','good','the','a','an','for','with','and','or','in','of'].includes(w.toLowerCase()))
+                    .filter(w => w.length > 2);
+            }
+        } else {
+            console.warn('[AI Search] NVIDIA_API_KEY not set — using regex fallback');
+            // Manual price extraction
+            const priceMatch = trimmedQuery.match(/(?:under|below|less than|within|upto|up to)\s*[₹$]?\s*(\d[\d,]*)/i);
+            if (priceMatch) parsed.maxPrice = parseInt(priceMatch[1].replace(/,/g, ''), 10);
+            parsed.keywords = trimmedQuery.split(/\s+/).filter(w => w.length > 2);
         }
 
-        const trimmedQuery = query.trim().toLowerCase();
+        // ── Step 2: Build Smart MongoDB Query ───────────────────────────────
+        const keywords = Array.isArray(parsed.keywords) && parsed.keywords.length > 0
+            ? parsed.keywords
+            : [trimmedQuery];
 
-        // 1. Identify colors mentioned in the query
-        const KNOWN_COLORS = [
-            'red', 'blue', 'black', 'white', 'green', 'yellow', 'pink', 
-            'purple', 'brown', 'orange', 'grey', 'gray', 'gold', 'silver', 
-            'navy', 'beige', 'maroon', 'tan', 'crimson', 'olive'
-        ];
-
-        const matchedColors = KNOWN_COLORS.filter(color => {
-            const rx = new RegExp(`\\b${color}\\b`, 'i');
-            return rx.test(trimmedQuery);
-        });
-
-        let primaryColor = matchedColors[0] || null;
-        if (primaryColor === 'crimson') primaryColor = 'red';
-        if (primaryColor === 'gray') primaryColor = 'grey';
-
-        // Detect Gender intent in query
-        const isWomenQuery = /\b(woman|women|womens|female|lady|ladies)\b/i.test(trimmedQuery);
-        const isMenQuery = /\b(man|men|mens|male|guy|guys)\b/i.test(trimmedQuery);
-
-        // 2. Classify exact Item-Type intent (e.g. laptop, headphone, monitor, phone, shoes, shirt, pant, jacket, book, toy, chair, lamp)
-        const categories = await Category.find().lean();
-
-        // Item-Type Definitions with explicit Subcategory & Search filters
-        const itemTypeRules = [
-            {
-                type: 'laptop',
-                rx: /(laptops?|notebooks?|macbooks?|workstations?)/i,
-                categorySlug: 'tech',
-                matchFilter: {
-                    $or: [
-                        { subcategory: /laptops?/i },
-                        { title: /laptops?|notebooks?|macbooks?|neurabook/i },
-                        { name: /laptops?|notebooks?|macbooks?|neurabook/i },
-                        { aiTags: 'laptop' }
-                    ]
-                }
-            },
-            {
-                type: 'headphone',
-                rx: /(head\s*phones?|ear\s*buds?|ear\s*phones?|headsets?|airpods?)/i,
-                categorySlug: 'tech',
-                matchFilter: {
-                    subcategory: /audio|headphones?/i
-                }
-            },
-            {
-                type: 'monitor',
-                rx: /(monitors?|screens?|displays?)/i,
-                categorySlug: 'tech',
-                matchFilter: {
-                    subcategory: /monitors?|displays?/i
-                }
-            },
-            {
-                type: 'phone',
-                rx: /(smart\s*phones?|cell\s*phones?|\bphones?|\biphones?|\bmobiles?)/i,
-                categorySlug: 'tech',
-                matchFilter: {
-                    subcategory: /smartphones?/i
-                }
-            },
-            {
-                type: 'shoes',
-                rx: /\b(shoes?|sneakers?|boots?|footwear|loafers?|slip\s*ons?|clogs?|sandals?|heels|pumps|flats|slippers)\b/i,
-                categorySlug: 'shoes',
-                matchFilter: {
-                    $and: [
-                        {
-                            $or: [
-                                { title: /\b(shoes?|sneakers?|boots?|loafers?|slip-ons?|clogs?|sandals?|footwear|runners?|heels|pumps|flats|slippers)\b/i },
-                                { name: /\b(shoes?|sneakers?|boots?|loafers?|slip-ons?|clogs?|sandals?|footwear|runners?|heels|pumps|flats|slippers)\b/i }
-                            ]
-                        },
-                        { title: { $not: /\b(underwear|panties|panti|bra|bras|lingerie|thong|briefs|boxers|swimsuit|bikini|socks|sock|hosiery|tights)\b/i } },
-                        { name: { $not: /\b(underwear|panties|panti|bra|bras|lingerie|thong|briefs|boxers|swimsuit|bikini|socks|sock|hosiery|tights)\b/i } }
-                    ]
-                }
-            },
-            {
-                type: 'shirt',
-                rx: /(t\s*shirts?|tees?|shirts?|tops?|blouses?)/i,
-                categorySlug: 'clothing',
-                matchFilter: {
-                    $or: [
-                        { title: /shirts?|t-?shirts?|tees?|tops?|blouses?/i },
-                        { name: /shirts?|t-?shirts?|tees?|tops?|blouses?/i },
-                        { aiTags: { $in: ['shirt', 't-shirt', 'tee', 'top', 'blouse'] } }
-                    ]
-                }
-            },
-            {
-                type: 'pant',
-                rx: /(pants?|jeans?|trousers?|shorts?|cargos?)/i,
-                categorySlug: 'clothing',
-                matchFilter: {
-                    $or: [
-                        { title: /pants?|jeans?|trousers?|shorts?|cargos?/i },
-                        { name: /pants?|jeans?|trousers?|shorts?|cargos?/i },
-                        { aiTags: { $in: ['pants', 'jeans', 'trousers', 'shorts'] } }
-                    ]
-                }
-            },
-            {
-                type: 'jacket',
-                rx: /(jackets?|coats?|hoodies?|puffer|sweaters?|bomber)/i,
-                categorySlug: 'clothing',
-                matchFilter: {
-                    $or: [
-                        { title: /jackets?|coats?|hoodies?|puffer|sweaters?|bomber/i },
-                        { name: /jackets?|coats?|hoodies?|puffer|sweaters?|bomber/i },
-                        { aiTags: { $in: ['jacket', 'hoodie', 'coat', 'puffer'] } }
-                    ]
-                }
-            },
-            {
-                type: 'backpack',
-                rx: /(backpacks?|bags?|rucksacks?)/i,
-                categorySlug: 'clothing',
-                matchFilter: {
-                    $or: [
-                        { subcategory: /backpacks?/i },
-                        { title: /backpack|bag|fjallraven/i },
-                        { aiTags: 'backpack' }
-                    ]
-                }
-            },
-            {
-                type: 'storage',
-                rx: /(hard\s*drives?|ssds?|storage|external\s*drive|memory)/i,
-                categorySlug: 'tech',
-                matchFilter: {
-                    $or: [
-                        { subcategory: /hard drives?|ssds?/i },
-                        { title: /hard drive|ssd|elements|sandisk|silicon power|gaming drive/i },
-                        { aiTags: { $in: ['hard drive', 'ssd', 'storage'] } }
-                    ]
-                }
-            },
-            {
-                type: 'jewelry',
-                rx: /(jewelery|jewelry|bracelets?|rings?|earrings?|necklace)/i,
-                categorySlug: 'home',
-                matchFilter: {
-                    $or: [
-                        { subcategory: /jewelry/i },
-                        { title: /bracelet|ring|earrings|gold|silver|john hardy/i },
-                        { aiTags: 'jewelry' }
-                    ]
-                }
-            },
-            {
-                type: 'lipstick',
-                rx: /(lipsticks?|lips?)/i,
-                categorySlug: 'beauty',
-                matchFilter: {
-                    $or: [
-                        { subcategory: /lipstick/i },
-                        { title: /lipstick/i },
-                        { aiTags: 'lipstick' }
-                    ]
-                }
-            },
-            {
-                type: 'beauty',
-                rx: /(beauty|mascara|eyeshadow|powder|nail\s*polish|cosmetics)/i,
-                categorySlug: 'beauty',
-                matchFilter: {
-                    $or: [
-                        { subcategory: /mascara|eyeshadow|powder|nail polish|beauty/i },
-                        { title: /mascara|eyeshadow|powder|nail polish/i },
-                        { aiTags: 'beauty' }
-                    ]
-                }
-            },
-            {
-                type: 'fragrance',
-                rx: /(fragrances?|perfumes?|cologne|eau\s*de)/i,
-                categorySlug: 'beauty',
-                matchFilter: {
-                    $or: [
-                        { subcategory: /fragrances?/i },
-                        { title: /ck one|coco noir|j'adore|dolce shine|gucci bloom/i },
-                        { aiTags: 'fragrances' }
-                    ]
-                }
-            },
-            {
-                type: 'furniture',
-                rx: /(furniture|sofas?|beds?|tables?|couch)/i,
-                categorySlug: 'home',
-                matchFilter: {
-                    $or: [
-                        { subcategory: /beds|sofas|tables|chairs|furniture/i },
-                        { title: /bed|sofa|table|chair|sink/i },
-                        { aiTags: 'furniture' }
-                    ]
-                }
-            },
-            {
-                type: 'groceries',
-                rx: /(groceries|fruits?|vegetables?|steak|food|oil|juice|eggs|pepper)/i,
-                categorySlug: 'groceries',
-                matchFilter: {
-                    $or: [
-                        { subcategory: /fruits|vegetables|meat|dairy|seafood|condiments|beverages|groceries/i },
-                        { title: /apple|steak|chicken|oil|cucumber|egg|pepper|honey|ice cream|juice|kiwi/i },
-                        { aiTags: 'groceries' }
-                    ]
-                }
-            },
-            {
-                type: 'chair',
-                rx: /(chairs?|recliners?|seating)/i,
-                categorySlug: 'home',
-                matchFilter: {
-                    $or: [
-                        { title: /chairs?|recliners?/i },
-                        { aiTags: 'chair' }
-                    ]
-                }
-            },
-            {
-                type: 'lamp',
-                rx: /(lamps?|lights?|lighting)/i,
-                categorySlug: 'home',
-                matchFilter: {
-                    $or: [
-                        { title: /lamps?|lights?/i },
-                        { aiTags: 'lamp' }
-                    ]
-                }
-            }
-        ];
-
-        const matchedItemType = itemTypeRules.find(rule => rule.rx.test(trimmedQuery));
-
-        // 3. Extract max price constraint if any (e.g. "under 5000", "under $50", "below 80k")
-        let maxPrice = null;
-        const priceMatch = trimmedQuery.match(/(?:under|below|less than|max|within)\s*(?:₹|\$)?\s*(\d+(?:\.\d+)?)\s*(k)?/i);
-        if (priceMatch) {
-            let val = parseFloat(priceMatch[1]);
-            if (priceMatch[2] && priceMatch[2].toLowerCase() === 'k') {
-                val *= 1000;
-            }
-            maxPrice = val;
+        // Build $or conditions for all keywords across all searchable fields
+        const searchConditions = [];
+        for (const kw of keywords) {
+            if (!kw || kw.trim().length < 2) continue;
+            const rx = new RegExp(kw.trim(), 'i');
+            searchConditions.push(
+                { title: rx },
+                { name: rx },
+                { brand: rx },
+                { description: rx },
+                { aiTags: rx },
+                { subcategory: rx }
+            );
         }
 
-        // 4. Construct MongoDB Query Filter
-        const mongoQuery = {
-            image: { $exists: true, $ne: "" },
-            title: { $exists: true, $ne: "" }
+        // Also search by category name if extracted
+        if (parsed.category) {
+            const catDoc = await Category.findOne({ name: new RegExp(`^${parsed.category}$`, 'i') });
+            if (catDoc) searchConditions.push({ category: catDoc._id });
+        }
+
+        let mongoQuery = {
+            image: { $exists: true, $ne: '' },
+            ...(searchConditions.length > 0 ? { $or: searchConditions } : {})
         };
 
-        if (matchedItemType) {
-            const catObj = categories.find(c => c.slug === matchedItemType.categorySlug);
-            if (catObj) mongoQuery.category = catObj._id;
-            
-            mongoQuery.$and = mongoQuery.$and || [];
-            mongoQuery.$and.push(matchedItemType.matchFilter);
-        } else {
-            // General Category Detection fallback
-            const isTech = /\b(tech|electronics?|gadgets?)\b/i.test(trimmedQuery);
-            const isClothing = /\b(clothing|clothes|fashion|apparel)\b/i.test(trimmedQuery);
-            const isHome = /\b(home|furniture|decor|kitchen)\b/i.test(trimmedQuery);
-            const isBook = /\b(books?|novels?)\b/i.test(trimmedQuery);
-            const isToy = /\b(toys?|games?)\b/i.test(trimmedQuery);
-
-            let detectedSlug = isTech ? 'tech' : isClothing ? 'clothing' : isHome ? 'home' : isBook ? 'books' : isToy ? 'toys' : null;
-            if (detectedSlug) {
-                const catObj = categories.find(c => c.slug === detectedSlug);
-                if (catObj) mongoQuery.category = catObj._id;
-            }
+        // Apply price filter if extracted
+        if (parsed.maxPrice && parsed.maxPrice > 0) {
+            mongoQuery.price = { $lte: parsed.maxPrice };
         }
 
-        // Apply Gender Hard Filter if specified in query
-        if (isWomenQuery) {
-            mongoQuery.$and = mongoQuery.$and || [];
-            mongoQuery.$and.push({
-                $or: [
-                    { title: /\b(women|woman|womens|female|ladies|lady)\b/i },
-                    { name: /\b(women|woman|womens|female|ladies|lady)\b/i },
-                    { aiTags: { $in: ['women', 'womens', 'woman', 'female', 'ladies', 'lady'] } }
-                ]
-            });
-        } else if (isMenQuery) {
-            mongoQuery.$and = mongoQuery.$and || [];
-            mongoQuery.$and.push({
-                $or: [
-                    { title: /\b(men|man|mens|male)\b/i },
-                    { name: /\b(men|man|mens|male)\b/i },
-                    { aiTags: { $in: ['men', 'mens', 'man', 'male'] } }
-                ]
-            });
-        }
+        const products = await Product.find(mongoQuery)
+            .populate('category')
+            .sort({ 'ratings.average': -1, price: 1 })
+            .limit(12);
 
-        if (maxPrice && !isNaN(maxPrice)) {
-            mongoQuery.price = { $lte: maxPrice };
-        }
+        console.log(`[AI Search] Found ${products.length} products`);
 
-        // Hard Color Filter: Require exact visual color match ONLY when a color is specified
-        if (primaryColor) {
-            const colorRegex = new RegExp(`\\b${primaryColor}\\b`, 'i');
-            mongoQuery.$and = mongoQuery.$and || [];
-            mongoQuery.$and.push({
-                $or: [
-                    { visualColor: primaryColor },
-                    { [`attributes.color`]: new RegExp(`^${primaryColor}$`, 'i') },
-                    { [`attributes.Color`]: new RegExp(`^${primaryColor}$`, 'i') },
-                    { aiTags: primaryColor },
-                    { imageDescription: colorRegex }
-                ]
-            });
-        }
-
-        // Fetch candidates matching hard filters
-        let products = await Product.find(mongoQuery).populate('category').lean();
-
-        // Fallback: Only search across all categories if NO specific item type or category was matched
-        if (products.length === 0 && primaryColor && !matchedItemType) {
-            const fallbackQuery = {
-                image: { $exists: true, $ne: "" },
-                title: { $exists: true, $ne: "" },
-                $or: [
-                    { visualColor: primaryColor },
-                    { [`attributes.color`]: new RegExp(`^${primaryColor}$`, 'i') },
-                    { aiTags: primaryColor }
-                ]
-            };
-            if (maxPrice) fallbackQuery.price = { $lte: maxPrice };
-            products = await Product.find(fallbackQuery).populate('category').lean();
-        }
-
-        // 5. Calculate Multimodal Vision & Attribute Ranking Score (100-point scale)
-        const stopwords = new Set(['show', 'me', 'the', 'a', 'an', 'for', 'with', 'under', 'below', 'in', 'of', 'and', 'or', 'to', 'buy', 'find', 'get', 'best', 'top', 'cheap', 'looking', 'want', 'need', 'book', 'books', 'woman', 'women', 'womens', 'man', 'men', 'mens', primaryColor]);
-        const queryTerms = trimmedQuery
-            .replace(/[^a-z0-9\s]/g, '')
-            .split(/\s+/)
-            .filter(w => w.length > 1 && !stopwords.has(w));
-
-        products = products.map(p => {
-            let score = 50; // base candidate score
-            const titleLower = (p.title || p.name || '').toLowerCase();
-            const descLower = (p.description || '').toLowerCase();
-            const subcatLower = (p.subcategory || '').toLowerCase();
-            const tagsStr = Array.isArray(p.aiTags) ? p.aiTags.join(' ').toLowerCase() : '';
-            const brandLower = (p.brand || '').toLowerCase();
-
-            // Gender Match Bonus
-            if (isWomenQuery && /\b(women|woman|womens|female|ladies)\b/i.test(titleLower + ' ' + tagsStr)) {
-                score += 35;
-            } else if (isMenQuery && /\b(men|man|mens|male)\b/i.test(titleLower + ' ' + tagsStr)) {
-                score += 35;
-            }
-
-            // Visual Color Match Scoring
-            if (primaryColor) {
-                if (p.visualColor === primaryColor || (p.attributes && typeof p.attributes.get === 'function' && p.attributes.get('color') === primaryColor)) {
-                    score += 40; // Exact visual image color match
-                } else if (tagsStr.includes(primaryColor)) {
-                    score += 25;
-                } else {
-                    score -= 30; // Color mismatch penalty
-                }
-            } else {
-                score += 20; // No color constraint
-            }
-
-            // Subject / Keyword / Subcategory match scoring
-            queryTerms.forEach(term => {
-                if (subcatLower.includes(term)) score += 20;
-                if (titleLower.includes(term)) score += 15;
-                if (tagsStr.includes(term)) score += 10;
-                if (brandLower.includes(term)) score += 10;
-            });
-
-            // Cap max score at 100
-            score = Math.min(100, score);
-
-            return { ...p, score };
-        })
-        .filter(p => p.score >= 65)
-        .sort((a, b) => b.score - a.score);
-
-        // When NO color is requested in query, interleave visual colors so top items are visually diverse (not all red)
-        if (!primaryColor && products.length > 0) {
-            const colorGroups = {};
-            products.forEach(p => {
-                const col = p.visualColor || 'other';
-                if (!colorGroups[col]) colorGroups[col] = [];
-                colorGroups[col].push(p);
-            });
-
-            const interleaved = [];
-            const colors = Object.keys(colorGroups);
-            const maxLen = Math.max(...colors.map(c => colorGroups[c].length));
-
-            for (let i = 0; i < maxLen; i++) {
-                colors.forEach(col => {
-                    if (colorGroups[col][i]) {
-                        interleaved.push(colorGroups[col][i]);
-                    }
+        // ── Step 3: Generate AI Explanation ─────────────────────────────────
+        if (apiKey && products.length > 0) {
+            try {
+                const client = require('axios').create({
+                    baseURL: 'https://integrate.api.nvidia.com/v1',
+                    timeout: 8000,
+                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }
                 });
+                const topTitles = products.slice(0, 3).map(p => `"${p.title}"`).join(', ');
+                const priceContext = parsed.maxPrice ? ` within ₹${parsed.maxPrice.toLocaleString()} budget` : '';
+                const catContext  = parsed.category  ? ` in the ${parsed.category} category` : '';
+                const prompt = `You are NeuraCart's AI shopping assistant. The user searched for: "${trimmedQuery}".
+We found ${products.length} matching products${catContext}${priceContext}.
+Top results include: ${topTitles}.
+Write a single helpful sentence (max 20 words) explaining why these results match the user's query. Be specific and friendly.
+Reply with ONLY that one sentence, no preamble.`;
+
+                const resp = await client.post('/chat/completions', {
+                    model: 'meta/llama-3.1-8b-instruct',
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.3,
+                    max_tokens: 60
+                });
+                aiExplanation = resp.data.choices[0].message.content.trim().replace(/^"|"$/g, '');
+            } catch (explainErr) {
+                console.warn('[AI Search] Explanation generation failed:', explainErr.message);
+                const priceStr = parsed.maxPrice ? ` under ₹${parsed.maxPrice.toLocaleString()}` : '';
+                aiExplanation = `Found ${products.length} product${products.length !== 1 ? 's' : ''} matching "${trimmedQuery}"${priceStr}.`;
             }
-            products = interleaved;
+        } else if (products.length === 0) {
+            aiExplanation = `No products found matching "${trimmedQuery}". Try a broader keyword or different budget.`;
+        } else {
+            const priceStr = parsed.maxPrice ? ` under ₹${parsed.maxPrice.toLocaleString()}` : '';
+            aiExplanation = `Found ${products.length} product${products.length !== 1 ? 's' : ''} matching your search${priceStr}.`;
         }
 
         return res.status(200).json({
             success: true,
-            count: products.length,
             data: products,
-            queryInfo: { 
-                query, 
-                color: primaryColor, 
-                itemType: matchedItemType ? matchedItemType.type : null,
-                category: matchedItemType ? matchedItemType.categorySlug : null,
-                type: "multimodal_ai_search" 
+            count: products.length,
+            aiExplanation,
+            queryInfo: {
+                keywords: parsed.keywords,
+                maxPrice: parsed.maxPrice,
+                category: parsed.category,
+                originalQuery: trimmedQuery
             }
         });
 
     } catch (error) {
-        console.error("AI Search Error:", error);
-        res.status(500).json({ success: false, error: 'AI Search failed' });
+        console.error('[AI Search] Fatal error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'AI Search encountered an error. Please try again.',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
+
+exports.apiSearchRegex = async (req, res, next) => {
+    try {
+        const query = req.query.q ? req.query.q.trim() : '';
+        if (!query) {
+            return res.status(400).json({ success: false, error: 'Please enter a product name.' });
+        }
+
+        const regex = new RegExp(query, 'i');
+
+        // Find matching categories first
+        const categories = await Category.find({ name: regex });
+        const categoryIds = categories.map(c => c._id);
+
+        const searchConditions = [
+            { name: regex },
+            { title: regex },
+            { brand: regex },
+            { description: regex },
+            { aiTags: regex }
+        ];
+
+        if (categoryIds.length > 0) {
+            searchConditions.push({ category: { $in: categoryIds } });
+        }
+
+        const products = await Product.find({ $or: searchConditions }).populate('category');
+
+        return res.status(200).json({
+            success: true,
+            count: products.length,
+            data: products
+        });
+    } catch (error) {
+        console.error("Regex Search API Error:", error);
+        res.status(500).json({ success: false, error: 'Search failed. Please try again.' });
+    }
+};
+
 // appended code
 exports.getSimilarProductsAI = async (req, res, next) => {
     try {

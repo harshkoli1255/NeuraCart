@@ -161,9 +161,15 @@
                 <h3><i class="fa-solid fa-bell" style="color: #ffa502; margin-right: 8px;"></i>Never Miss a Deal</h3>
                 <p>Sign up for price drop alerts and get notified when your favorite products go on sale.</p>
             </div>
-            <a href="/auth/register" class="deal-promo-cta">
-                <i class="fa-solid fa-bell"></i> Get Deal Alerts
-            </a>
+            <% if (locals.user) { %>
+                <button class="deal-promo-cta" id="deal-alerts-btn" type="button" style="border: none; cursor: pointer;">
+                    <i class="fa-solid fa-bell"></i> Get Deal Alerts
+                </button>
+            <% } else { %>
+                <a href="/auth/login" class="deal-promo-cta">
+                    <i class="fa-solid fa-bell"></i> Get Deal Alerts
+                </a>
+            <% } %>
         </div>
 
         <% if (moreDeals && moreDeals.length > 0) { %>
@@ -183,12 +189,42 @@
 
             <% if (dealCategories && dealCategories.length > 1) { %>
             <div class="deals-category-strip" id="deals-cat-strip">
-                <button type="button" class="deals-cat-pill active" data-filter="all">🔥 All Deals</button>
+                <button type="button" class="deals-cat-pill <%= activeCategory === 'all' ? 'active' : '' %>" data-filter="all">🔥 All Deals</button>
                 <% dealCategories.forEach(cat => { %>
-                    <button type="button" class="deals-cat-pill" data-filter="<%= cat.name %>"><%= cat.icon || '📁' %> <%= cat.name %></button>
+                    <button type="button" class="deals-cat-pill <%= activeCategory === cat.name ? 'active' : '' %>" data-filter="<%= cat.name %>"><%= cat.icon || '📁' %> <%= cat.name %></button>
                 <% }) %>
             </div>
             <% } %>
+
+            <!-- ── Filter Status Bar ── -->
+            <div id="deals-filter-bar" style="display:none; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; padding:14px 20px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-lg);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="deals-filter-label" style="font-weight:700; color:var(--text-hi); font-size:15px;"></span>
+                    <span id="deals-filter-count" style="font-size:13px; color:var(--text-md);"></span>
+                </div>
+                <button id="deals-clear-filters" type="button" style="display:flex; align-items:center; gap:6px; padding:7px 16px; border-radius:999px; border:1.5px solid var(--border); background:none; color:var(--text-md); cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s;">
+                    <i class="fa-solid fa-xmark"></i> Clear Filters
+                </button>
+            </div>
+
+            <!-- ── Loading Overlay ── -->
+            <div id="deals-loading" style="display:none; padding:60px 0; text-align:center;">
+                <div style="display:inline-block; width:44px; height:44px; border:3px solid var(--border); border-top-color:var(--purple-lt); border-radius:50%; animation:spin-loader 0.8s linear infinite;"></div>
+                <p style="margin-top:16px; color:var(--text-md); font-size:14px;">Filtering deals…</p>
+            </div>
+
+            <!-- ── Dynamic Filtered Results Grid ── -->
+            <div id="deals-filter-results" style="display:none;">
+                <div class="deals-grid" id="deals-filter-grid"></div>
+            </div>
+
+            <!-- ── Empty State ── -->
+            <div id="deals-empty-state" style="display:none; padding:64px 24px; text-align:center;">
+                <div style="font-size:56px; margin-bottom:16px;">🔍</div>
+                <h3 style="font-size:20px; font-weight:700; color:var(--text-hi); margin-bottom:8px;">No deals found</h3>
+                <p style="color:var(--text-md); font-size:14px; margin-bottom:24px;">No deals match the selected category and discount threshold.<br>Try a different combination.</p>
+                <button id="deals-empty-clear" type="button" class="nc-cta" style="height:40px; font-size:14px; padding:0 24px;">View All Deals</button>
+            </div>
 
             <div class="deals-grid" id="more-deals-grid">
                 <% moreDeals.forEach((product, index) => { %>
@@ -340,6 +376,467 @@
                 }
             });
         });
+
+        // ════════════════════════════════════════════════
+        // ── DYNAMIC DEALS FILTER ENGINE ──────────────────
+        // ════════════════════════════════════════════════
+
+        const pills = document.querySelectorAll('.deals-cat-pill');
+        const filterBar      = document.getElementById('deals-filter-bar');
+        const filterLabel    = document.getElementById('deals-filter-label');
+        const filterCount    = document.getElementById('deals-filter-count');
+        const filterResults  = document.getElementById('deals-filter-results');
+        const filterGrid     = document.getElementById('deals-filter-grid');
+        const loadingEl      = document.getElementById('deals-loading');
+        const emptyEl        = document.getElementById('deals-empty-state');
+        const clearBtn       = document.getElementById('deals-clear-filters');
+        const emptyClearBtn  = document.getElementById('deals-empty-clear');
+
+        // The static EJS sections (flash + more deals)
+        const staticSections = document.querySelectorAll('.deals-section');
+
+        var currentCategory = '<%= activeCategory %>';
+        var currentDiscount = parseInt('<%= activeDiscount %>') || 0;
+
+        // ── Build a single product card HTML string ──────
+        function buildCard(p) {
+            const disc   = p._syntheticDiscount || 0;
+            const orig   = p._originalPrice  || (p.price * 1.4).toFixed(2);
+            const catName= (p.category && p.category.name) ? p.category.name : 'General';
+            const img    = p.image || '/images/favicon.png';
+            return `
+            <div class="deal-card" data-category="${catName}">
+                <a href="/product/${p._id}" class="deal-card-link">
+                    <div class="deal-card-image">
+                        <img src="${img}" alt="${p.title}" loading="lazy" decoding="async" onerror="this.parentElement.classList.add('image-load-failed');">
+                        <span class="deal-card-discount"><i class="fa-solid fa-arrow-down"></i> ${disc}% OFF</span>
+                    </div>
+                    <div class="deal-card-body">
+                        <span class="deal-card-category">${catName}</span>
+                        <h3 class="deal-card-title">${p.title}</h3>
+                        <div class="deal-card-price-row">
+                            <span class="deal-card-price">$${parseFloat(p.price).toFixed(2)}</span>
+                            <span class="deal-card-original">$${parseFloat(orig).toFixed(2)}</span>
+                            <span class="deal-card-save">Save ${disc}%</span>
+                        </div>
+                    </div>
+                </a>
+                <div style="padding: 0 14px 14px;">
+                    <button class="deal-card-btn" type="button" data-add-to-cart data-product-id="${p._id}">
+                        <i class="fa-solid fa-cart-plus"></i> Add to Cart
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        // ── Wire add-to-cart for dynamic cards ──────────
+        function wireCartButtons(container) {
+            container.querySelectorAll('.deal-card-btn').forEach(function(btn) {
+                btn.addEventListener('click', async function(e) {
+                    e.preventDefault(); e.stopPropagation();
+                    if (btn.disabled) return;
+                    var productId = btn.dataset.productId;
+                    if (!productId) return;
+                    var original = btn.innerHTML;
+                    btn.disabled = true; btn.textContent = 'Adding…';
+                    try {
+                        var r = await fetch('/cart/add', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, credentials:'same-origin', body: JSON.stringify({productId, quantity:1}) });
+                        var d = await r.json();
+                        if (!r.ok || !d.success) throw new Error(d.error || 'Could not add to cart.');
+                        updateBadge(d.cartCount);
+                        showNotice(d.message || 'Added to cart!');
+                        btn.innerHTML = '<i class="fa-solid fa-check"></i> Added';
+                        btn.style.background = 'rgba(16,185,129,0.15)'; btn.style.borderColor = '#10b981'; btn.style.color = '#10b981';
+                        btn.disabled = true;
+                    } catch(err) {
+                        showNotice(err.message || 'Could not add to cart.', true);
+                        btn.disabled = false; btn.innerHTML = original;
+                    }
+                });
+            });
+        }
+
+        // ── Show / hide sections ─────────────────────────
+        function showStatic() {
+            staticSections.forEach(s => s.style.display = '');
+            filterResults.style.display = 'none';
+            loadingEl.style.display = 'none';
+            emptyEl.style.display = 'none';
+            filterBar.style.display = 'none';
+        }
+
+        function showLoading() {
+            staticSections.forEach(s => s.style.display = 'none');
+            filterResults.style.display = 'none';
+            emptyEl.style.display = 'none';
+            loadingEl.style.display = 'block';
+        }
+
+        function showFilteredResults(products, category, discount) {
+            loadingEl.style.display = 'none';
+            emptyEl.style.display = 'none';
+            staticSections.forEach(s => s.style.display = 'none');
+
+            if (products.length === 0) {
+                filterResults.style.display = 'none';
+                emptyEl.style.display = 'block';
+            } else {
+                filterGrid.innerHTML = products.map(buildCard).join('');
+                wireCartButtons(filterGrid);
+                filterResults.style.display = 'block';
+            }
+
+            // Status bar
+            const catLabel = category === 'all' ? 'All Categories' : category;
+            const discLabel = discount > 0 ? ` — ≥${discount}% off` : '';
+            filterLabel.textContent = '🔎 Showing ' + catLabel + ' Deals' + discLabel;
+            filterCount.textContent = '(' + products.length + ' result' + (products.length !== 1 ? 's' : '') + ')';
+            filterBar.style.display = 'flex';
+        }
+
+        // ── Core fetch filter function ───────────────────
+        async function applyFilter(category, discount, pushState) {
+            currentCategory = category;
+            currentDiscount = discount;
+
+            // Sync pills
+            pills.forEach(p => {
+                p.classList.toggle('active', p.getAttribute('data-filter') === category);
+            });
+
+            // Update URL
+            if (pushState) {
+                const params = new URLSearchParams();
+                if (category !== 'all') params.set('category', category);
+                if (discount > 0)       params.set('discount', discount);
+                const qs = params.toString();
+                history.pushState({ category, discount }, '', '/deals' + (qs ? '?' + qs : ''));
+            }
+
+            if (category === 'all' && discount === 0) {
+                showStatic();
+                return;
+            }
+
+            showLoading();
+            try {
+                const resp = await fetch(`/api/deals/filter?category=${encodeURIComponent(category)}&discount=${discount}`, { credentials: 'same-origin' });
+                const data = await resp.json();
+                if (!data.success) throw new Error(data.error || 'Filter failed.');
+                showFilteredResults(data.products, category, discount);
+            } catch (err) {
+                loadingEl.style.display = 'none';
+                showNotice('Filter failed. Please try again.', true);
+                showStatic();
+            }
+        }
+
+        // ── Category Pills ───────────────────────────────
+        pills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                const filter = pill.getAttribute('data-filter');
+                const dropdown = document.getElementById('da-category');
+                if (dropdown) dropdown.value = filter;
+                applyFilter(filter, currentDiscount, true);
+            });
+        });
+
+        // ── Clear Filters ────────────────────────────────
+        function clearFilters() {
+            currentCategory = 'all';
+            currentDiscount = 0;
+            const dropdown = document.getElementById('da-category');
+            if (dropdown) dropdown.value = 'all';
+            const discountSel = document.getElementById('da-discount');
+            if (discountSel) discountSel.value = '0';
+            applyFilter('all', 0, true);
+        }
+        if (clearBtn) clearBtn.addEventListener('click', clearFilters);
+        if (emptyClearBtn) emptyClearBtn.addEventListener('click', clearFilters);
+
+        // ── On page load: restore from URL ──────────────
+        (function restoreFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const cat  = params.get('category') || 'all';
+            const disc = parseInt(params.get('discount'), 10) || 0;
+            if (cat !== 'all' || disc > 0) {
+                applyFilter(cat, disc, false);
+            }
+        })();
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', function(e) {
+            const state = e.state || {};
+            applyFilter(state.category || 'all', state.discount || 0, false);
+        });
+
+        // ── Deal Alerts Modal Interactivity ──
+        var alertsBtn = document.getElementById('deal-alerts-btn');
+        var alertsModal = document.getElementById('deal-alerts-modal');
+        if (alertsBtn && alertsModal) {
+            var overlay = alertsModal.querySelector('.da-modal-overlay');
+            var closeBtn = alertsModal.querySelector('.da-modal-close');
+            var form = document.getElementById('da-alerts-form');
+            var categorySelect = document.getElementById('da-category');
+
+            function openModal() {
+                alertsModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeModal() {
+                alertsModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+
+            alertsBtn.addEventListener('click', openModal);
+            overlay.addEventListener('click', closeModal);
+            closeBtn.addEventListener('click', closeModal);
+
+            // Live preview: modal category dropdown → filter page behind modal
+            if (categorySelect) {
+                categorySelect.addEventListener('change', function () {
+                    const discountSel = document.getElementById('da-discount');
+                    const disc = discountSel ? parseInt(discountSel.value, 10) : 0;
+                    applyFilter(this.value, disc, false);
+                });
+            }
+            const discountSel = document.getElementById('da-discount');
+            if (discountSel) {
+                discountSel.addEventListener('change', function() {
+                    const catVal = categorySelect ? categorySelect.value : 'all';
+                    applyFilter(catVal, parseInt(this.value, 10) || 0, false);
+                });
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var category = document.getElementById('da-category').value;
+                var discount = document.getElementById('da-discount').value;
+                
+                var submitBtn = form.querySelector('.da-submit-btn');
+                var originalBtnHtml = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner" style="margin-right:8px; border-width: 2px;"></span> Activating...';
+
+                try {
+                    var resp = await fetch('/api/deals/alerts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ category: category, minDiscount: discount })
+                    });
+                    var data = await resp.json();
+                    if (!resp.ok || !data.success) throw new Error(data.error || 'Failed to activate deal alerts.');
+
+                    showNotice(data.message || 'Deal alerts activated successfully!');
+                    closeModal();
+                    // After saving the alert, apply the matching filter to the page
+                    applyFilter(category, parseInt(discount, 10) || 0, true);
+                } catch (err) {
+                    console.error('Error activating deal alert:', err);
+                    showNotice(err.message || 'Failed to activate deal alert. Please try again.', true);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
+                }
+            });
+        }
     });
 })();
 </script>
+
+<% if (locals.user) { %>
+<!-- Deal Alerts Modal -->
+<div id="deal-alerts-modal" class="da-modal" style="display: none;">
+    <div class="da-modal-overlay"></div>
+    <div class="da-modal-content">
+        <button type="button" class="da-modal-close" aria-label="Close modal">&times;</button>
+        <div class="da-modal-header">
+            <div class="da-modal-icon">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <h2>Get Deal Alerts</h2>
+            <p>We'll notify you the instant prices drop on your favorite items.</p>
+        </div>
+        <form id="da-alerts-form">
+            <div class="da-form-group">
+                <label for="da-email">Email Address</label>
+                <input type="email" id="da-email" value="<%= locals.user.email %>" required readonly>
+                <small class="da-form-help">Alerts will be sent to your account email.</small>
+            </div>
+            <div class="da-form-group">
+                <label for="da-category">Alert Category</label>
+                <select id="da-category" required>
+                    <option value="all">🔥 All Categories</option>
+                    <% if (typeof dealCategories !== 'undefined' && dealCategories) { %>
+                        <% dealCategories.forEach(cat => { %>
+                            <option value="<%= cat.name %>"><%= cat.name %></option>
+                        <% }) %>
+                    <% } %>
+                </select>
+            </div>
+            <div class="da-form-group">
+                <label for="da-discount">Discount Threshold</label>
+                <select id="da-discount" required>
+                    <option value="10">10% Off or more</option>
+                    <option value="25">25% Off or more</option>
+                    <option value="50">50% Off or more</option>
+                </select>
+            </div>
+            <button type="submit" class="da-submit-btn">
+                <i class="fa-solid fa-bell"></i> Activate Alerts
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Deal Alerts Modal Styles */
+.da-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.da-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+}
+.da-modal-content {
+    position: relative;
+    background: var(--surface-2, #ffffff);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: var(--r-xl, 24px);
+    width: 100%;
+    max-width: 480px;
+    padding: 32px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 10000;
+    animation: da-slide-up 0.3s ease-out;
+}
+@keyframes da-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+@keyframes spin-loader {
+    to { transform: rotate(360deg); }
+}
+.da-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: var(--text-md, #64748b);
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.da-modal-close:hover {
+    color: var(--text-hi, #0f172a);
+}
+.da-modal-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+.da-modal-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--purple-lt, #8b5cf6);
+    border-radius: var(--r-lg, 16px);
+    font-size: 24px;
+    margin-bottom: 16px;
+}
+.da-modal-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-hi, #0f172a);
+    margin-bottom: 8px;
+}
+.da-modal-header p {
+    font-size: 14px;
+    color: var(--text-md, #64748b);
+    line-height: 1.5;
+}
+.da-form-group {
+    margin-bottom: 20px;
+}
+.da-form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-hi, #0f172a);
+    margin-bottom: 8px;
+}
+.da-form-group input,
+.da-form-group select {
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    background: var(--surface, #f8fafc);
+    border: 1.5px solid var(--border-2, #e2e8f0);
+    border-radius: var(--r-md, 12px);
+    color: var(--text-hi, #0f172a);
+    font-size: 14.5px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.da-form-group input:focus,
+.da-form-group select:focus {
+    border-color: var(--purple-lt, #8b5cf6);
+}
+.da-form-group input[readonly] {
+    background: var(--surface-2, #f1f5f9);
+    color: var(--text-md, #64748b);
+    cursor: not-allowed;
+}
+.da-form-help {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-md, #64748b);
+}
+.da-submit-btn {
+    width: 100%;
+    height: 48px;
+    background: var(--grad-purple, linear-gradient(135deg, #8b5cf6, #d946ef));
+    color: #ffffff;
+    border: none;
+    border-radius: var(--r-md, 12px);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.2s;
+}
+.da-submit-btn:hover {
+    opacity: 0.9;
+}
+</style>
+<% } %>

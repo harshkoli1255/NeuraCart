@@ -179,4 +179,12 @@ productSchema.pre('save', async function() {
 // Enhanced Index for basic text search just in case we need a fallback from AI search
 productSchema.index({ name: 'text', title: 'text', description: 'text', imageDescription: 'text', subcategory: 'text', aiTags: 'text', brand: 'text' });
 
+// Indexes for regex search performance
+productSchema.index({ name: 1 });
+productSchema.index({ title: 1 });
+productSchema.index({ brand: 1 });
+productSchema.index({ category: 1 });
+productSchema.index({ description: 1 });
+productSchema.index({ aiTags: 1 });
+
 module.exports = mongoose.model("Product", productSchema);

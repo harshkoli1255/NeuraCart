@@ -1,4 +1,4 @@
-<div class="checkout-page">
+<form class="checkout-page" id="checkout-form">
     <div class="checkout-grid">
         
         <!-- LEFT: Forms -->
@@ -15,14 +15,14 @@
                     <div class="input-group">
                         <label for="fullName">Full Name</label>
                         <div class="input-wrap">
-                            <input type="text" id="fullName" placeholder="John Doe" required value="<%= locals.user ? user.name : '' %>">
+                            <input type="text" id="fullName" name="fullName" placeholder="John Doe" required value="<%= locals.user ? user.name : '' %>">
                             <i class="fa-regular fa-user"></i>
                         </div>
                     </div>
                     <div class="input-group">
                         <label for="email">Email Address</label>
                         <div class="input-wrap">
-                            <input type="email" id="email" placeholder="user@example.com" required value="<%= locals.user ? user.email : '' %>">
+                            <input type="email" id="email" name="email" placeholder="user@example.com" required value="<%= locals.user ? user.email : '' %>">
                             <i class="fa-regular fa-envelope"></i>
                         </div>
                     </div>
@@ -31,14 +31,14 @@
                         <div class="input-group">
                             <label for="address">Street Address</label>
                             <div class="input-wrap">
-                                <input type="text" id="address" placeholder="123 Main St" required>
+                                <input type="text" id="address" name="address" placeholder="123 Main St" required>
                                 <i class="fa-regular fa-map-pin"></i>
                             </div>
                         </div>
                         <div class="input-group">
                             <label for="zip">ZIP Code</label>
                             <div class="input-wrap">
-                                <input type="text" id="zip" placeholder="10001" required>
+                                <input type="text" id="zip" name="zip" placeholder="10001" required>
                             </div>
                         </div>
                     </div>
@@ -47,13 +47,13 @@
                         <div class="input-group">
                             <label for="city">City</label>
                             <div class="input-wrap">
-                                <input type="text" id="city" placeholder="New York" required>
+                                <input type="text" id="city" name="city" placeholder="New York" required>
                             </div>
                         </div>
                         <div class="input-group">
                             <label for="state">State/Province</label>
                             <div class="input-wrap">
-                                <input type="text" id="state" placeholder="NY" required>
+                                <input type="text" id="state" name="state" placeholder="NY" required>
                             </div>
                         </div>
                     </div>
@@ -87,14 +87,14 @@
                     <div class="input-group">
                         <label for="cardName">Name on Card</label>
                         <div class="input-wrap">
-                            <input type="text" id="cardName" placeholder="John Doe" required>
+                            <input type="text" id="cardName" name="cardName" placeholder="John Doe" required>
                             <i class="fa-regular fa-user"></i>
                         </div>
                     </div>
                     <div class="input-group">
                         <label for="cardNumber">Card Number</label>
                         <div class="input-wrap">
-                            <input type="text" id="cardNumber" placeholder="4242 4242 4242 4242" required>
+                            <input type="text" id="cardNumber" name="cardNumber" placeholder="4242 4242 4242 4242" required>
                             <i class="fa-regular fa-credit-card"></i>
                         </div>
                     </div>
@@ -102,13 +102,13 @@
                         <div class="input-group">
                             <label for="expiry">MM/YY</label>
                             <div class="input-wrap">
-                                <input type="text" id="expiry" placeholder="12/26" required>
+                                <input type="text" id="expiry" name="expiry" placeholder="12/26" required>
                             </div>
                         </div>
                         <div class="input-group">
                             <label for="cvv">CVV</label>
                             <div class="input-wrap">
-                                <input type="text" id="cvv" placeholder="123" required>
+                                <input type="text" id="cvv" name="cvv" placeholder="123" required>
                                 <i class="fa-regular fa-shield-check"></i>
                             </div>
                         </div>
@@ -124,34 +124,34 @@
                 <h3 style="font-size: 18px; font-weight: 700; color: var(--text-hi); margin-bottom: 24px;">Order Summary</h3>
                 
                 <div class="summary-items">
-                    <!-- Example hardcoded item for demonstration -->
-                    <div class="summary-item">
-                        <div class="summary-img" style="display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: 8px;">
-                            <i class="fa-solid fa-laptop" style="color: var(--purple-lt); font-size: 20px;"></i>
-                        </div>
-                        <div class="summary-info">
-                            <div class="summary-title">NeuraBook Pro 16</div>
-                            <div class="summary-meta">Qty: 1</div>
-                        </div>
-                        <div class="summary-price">₹1999.00</div>
-                    </div>
-                    
-                    <div class="summary-item">
-                        <div class="summary-img" style="display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: 8px;">
-                            <i class="fa-solid fa-headphones" style="color: var(--purple-lt); font-size: 20px;"></i>
-                        </div>
-                        <div class="summary-info">
-                            <div class="summary-title">Aurora Sound ANC Buds</div>
-                            <div class="summary-meta">Qty: 2</div>
-                        </div>
-                        <div class="summary-price">₹259.98</div>
-                    </div>
+                    <% if (typeof cart !== 'undefined' && cart && cart.items && cart.items.length > 0) { %>
+                        <% cart.items.forEach(item => { %>
+                            <% 
+                                let itemImg = '/images/favicon.png';
+                                if (item.product && item.product.image) {
+                                    itemImg = item.product.image;
+                                } else if (item.product && item.product.images && item.product.images.length > 0) {
+                                    itemImg = item.product.images[0];
+                                }
+                            %>
+                            <div class="summary-item">
+                                <div class="summary-img" style="display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: 8px; overflow: hidden; width: 48px; height: 48px;">
+                                    <img src="<%= itemImg %>" alt="<%= item.product ? item.product.title : 'Product' %>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/images/favicon.png';">
+                                </div>
+                                <div class="summary-info">
+                                    <div class="summary-title"><%= item.product ? item.product.title : 'Product' %></div>
+                                    <div class="summary-meta">Qty: <%= item.quantity %></div>
+                                </div>
+                                <div class="summary-price">₹<%= ((item.product ? item.product.price : 0) * item.quantity).toFixed(2) %></div>
+                            </div>
+                        <% }) %>
+                    <% } %>
                 </div>
                 
                 <div class="summary-totals">
                     <div class="summary-row">
                         <span>Subtotal</span>
-                        <span style="color: var(--text-hi); font-weight: 500;">₹2258.98</span>
+                        <span style="color: var(--text-hi); font-weight: 500;">₹<%= typeof subtotal !== 'undefined' ? subtotal.toFixed(2) : '0.00' %></span>
                     </div>
                     <div class="summary-row">
                         <span>Shipping</span>
@@ -159,17 +159,17 @@
                     </div>
                     <div class="summary-row">
                         <span>Taxes (18% GST)</span>
-                        <span style="color: var(--text-hi); font-weight: 500;">₹406.62</span>
+                        <span style="color: var(--text-hi); font-weight: 500;">₹<%= typeof tax !== 'undefined' ? tax.toFixed(2) : '0.00' %></span>
                     </div>
                     
                     <div class="summary-total">
                         <span>Total</span>
-                        <span>₹2665.60</span>
+                        <span id="summary-total-val">₹<%= typeof total !== 'undefined' ? total.toFixed(2) : '0.00' %></span>
                     </div>
                 </div>
                 
-                <button class="nc-cta" style="width: 100%; margin-top: 24px; height: 56px; font-size: 16px;">
-                    Pay ₹2665.60 Securely <i class="fa-solid fa-arrow-right"></i>
+                <button class="nc-cta" id="pay-btn" type="submit" style="width: 100%; margin-top: 24px; height: 56px; font-size: 16px; border: none; cursor: pointer;">
+                    Pay ₹<%= typeof total !== 'undefined' ? total.toFixed(2) : '0.00' %> Securely <i class="fa-solid fa-arrow-right"></i>
                 </button>
                 
                 <p style="font-size: 11.5px; color: var(--text-lo); text-align: center; margin-top: 16px; line-height: 1.5;">
@@ -179,4 +179,93 @@
         </div>
 
     </div>
-</div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('checkout-form');
+    const payBtn = document.getElementById('pay-btn');
+    
+    if (form && payBtn) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Check validation
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Gather shipping details
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const address = document.getElementById('address').value.trim();
+            const zip = document.getElementById('zip').value.trim();
+            const city = document.getElementById('city').value.trim();
+            const state = document.getElementById('state').value.trim();
+            
+            if (!fullName || !email || !address || !zip || !city || !state) {
+                alert("Please fill in all required shipping fields.");
+                return;
+            }
+            
+            // Prevent duplicate submissions
+            payBtn.disabled = true;
+            const originalHtml = payBtn.innerHTML;
+            payBtn.innerHTML = '<span class="spinner" style="margin-right:8px; border-width: 2px;"></span> Processing Payment...';
+            
+            try {
+                const response = await fetch('/cart/checkout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        fullName,
+                        email,
+                        address,
+                        zip,
+                        city,
+                        state
+                    })
+                });
+                
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Checkout failed. Please try again.');
+                }
+                
+                showCheckoutNotice(data.message || 'Order placed successfully!');
+                
+                // Clear cart badge counter globally if updateBadge is defined
+                var badge = document.querySelector('.nc-cart-count');
+                if (badge) {
+                    badge.textContent = '0';
+                    badge.style.display = 'none';
+                }
+                
+                setTimeout(() => {
+                    window.location.href = '/cart/checkout/success';
+                }, 1500);
+                
+            } catch (err) {
+                console.error("Checkout error:", err);
+                showCheckoutNotice(err.message || 'An error occurred during checkout. Please try again.', true);
+                payBtn.disabled = false;
+                payBtn.innerHTML = originalHtml;
+            }
+        });
+    }
+    
+    function showCheckoutNotice(msg, isError) {
+        var notice = document.createElement('div');
+        notice.className = 'cart-notice' + (isError ? ' cart-notice-error' : '');
+        notice.setAttribute('role', 'status');
+        notice.textContent = msg;
+        document.body.appendChild(notice);
+        setTimeout(function () { notice.remove(); }, 3200);
+    }
+});
+</script>

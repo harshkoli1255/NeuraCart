@@ -301,98 +301,159 @@
     document.addEventListener('DOMContentLoaded', renderReactiveCartButtons);
 
     /* --------------------------------------------------
-       4. HERO SEARCH — focus and fetch
+       4. HERO AI SEARCH — natural language → AI endpoint
        -------------------------------------------------- */
-    var heroBtn    = document.querySelector('.hero-search-btn');
-    var heroInput  = document.querySelector('.hero-search-input');
-    var productGrid = document.querySelector('.product-grid');
-    var sectionTitle = document.querySelector('.section-title');
+    var heroBtn    = document.getElementById('hero-search-btn');
+    var heroInput  = document.getElementById('hero-search');
+
+    // AI Results Panel elements
+    var aiPanel        = document.getElementById('ai-results-panel');
+    var aiExplainText  = document.getElementById('ai-explanation-text');
+    var aiResultsTitle = document.getElementById('ai-results-title');
+    var aiProductGrid  = document.getElementById('ai-product-grid');
+    var aiEmptyState   = document.getElementById('ai-empty-state');
+    var aiClearBtn     = document.getElementById('ai-clear-search');
+
+    function buildAIProductCard(product) {
+        var img   = product.image || '';
+        var price = product.price ? '₹' + parseFloat(product.price).toFixed(2) : '';
+        var cat   = (product.category && product.category.name) ? product.category.name : 'General';
+        var avg   = (product.ratings && product.ratings.average) ? product.ratings.average : 0;
+        var cnt   = (product.ratings && product.ratings.count)   ? product.ratings.count   : 0;
+        var title = product.title || product.name || 'Product';
+        return '<a href="/product/' + product._id + '" class="product-card">' +
+            (product.isFeatured ? '<span class="product-badge product-badge-ai">Hot</span>' : '') +
+            '<button class="product-wishlist" aria-label="Add to wishlist" data-product-id="' + product._id + '"><i class="fa-regular fa-heart"></i></button>' +
+            '<div class="product-card-image">' +
+                (img ? '<img src="' + img + '" alt="' + title + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' : '<div style="font-size:32px;display:flex;align-items:center;justify-content:center;height:100%;">' + (product.category && product.category.icon ? product.category.icon : '📦') + '</div>') +
+            '</div>' +
+            '<div class="product-card-body">' +
+                '<span class="product-category-tag">' + cat + '</span>' +
+                '<h3 class="product-title">' + title + '</h3>' +
+                '<div class="product-meta">' +
+                    '<span class="product-price">' + price + '</span>' +
+                    '<span class="product-rating"><i class="fa-solid fa-star"></i> ' + avg + ' <span class="product-rating-count">(' + cnt + ')</span></span>' +
+                '</div>' +
+                '<button class="btn-add-cart" type="button" data-add-to-cart data-product-id="' + product._id + '">' +
+                    '<i class="fa-solid fa-cart-plus"></i> Add to Cart' +
+                '</button>' +
+            '</div>' +
+        '</a>';
+    }
+
+    function clearAISearch() {
+        if (aiPanel) aiPanel.style.display = 'none';
+        if (heroInput) { heroInput.value = ''; heroInput.focus(); }
+    }
+
+    if (aiClearBtn) aiClearBtn.addEventListener('click', clearAISearch);
+
+    async function doAISearch() {
+        if (!heroBtn || !heroInput) return;
+        var query = heroInput.value.trim();
+
+        if (!query) {
+            showNotice('Please enter what you\'re looking for.', false);
+            heroInput.focus();
+            return;
+        }
+
+        // Loading state
+        var originalBtnHtml = heroBtn.innerHTML;
+        heroBtn.innerHTML = '<span class="spinner" style="margin-right:8px;border-width:2px;width:16px;height:16px;border-top-color:#fff;"></span><span>Thinking...</span>';
+        heroBtn.disabled = true;
+
+        // Show loading in AI panel
+        if (aiPanel) {
+            aiPanel.style.display = 'block';
+            if (aiExplainText) aiExplainText.textContent = 'Searching with AI…';
+            if (aiResultsTitle) aiResultsTitle.textContent = '';
+            if (aiProductGrid) aiProductGrid.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;padding:60px 0;grid-column:1/-1;"><div class="spinner" style="width:40px;height:40px;border-width:3px;border-top-color:var(--purple);"></div></div>';
+            if (aiEmptyState) aiEmptyState.style.display = 'none';
+            aiPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        try {
+            var resp = await fetch('/api/products/ai-search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ query: query })
+            });
+            var result = await resp.json();
+
+            if (!resp.ok || !result.success) {
+                throw new Error(result.error || 'AI Search failed. Please try again.');
+            }
+
+            // ── Render AI Explanation ──
+            if (aiExplainText) {
+                aiExplainText.textContent = result.aiExplanation || ('Found ' + (result.count || 0) + ' results for "' + query + '".');
+            }
+
+            // ── Render Products ──
+            var count = (result.data && result.data.length) || 0;
+
+            if (aiResultsTitle) {
+                aiResultsTitle.innerHTML = count > 0
+                    ? '✨ AI Results for <em>"' + query + '"</em> &nbsp;<span style="font-size:14px;font-weight:400;color:var(--text-md);">(' + count + ' found)</span>'
+                    : '';
+            }
+
+            if (count === 0) {
+                if (aiProductGrid) aiProductGrid.innerHTML = '';
+                if (aiEmptyState) aiEmptyState.style.display = 'block';
+            } else {
+                if (aiEmptyState) aiEmptyState.style.display = 'none';
+                if (aiProductGrid) {
+                    aiProductGrid.innerHTML = result.data.map(buildAIProductCard).join('');
+                    // Re-bind cart buttons for dynamically rendered cards
+                    if (typeof renderReactiveCartButtons === 'function') renderReactiveCartButtons();
+                    if (typeof bindWishlists === 'function') bindWishlists();
+                    if (typeof bindProductImageFallbacks === 'function') bindProductImageFallbacks(aiProductGrid);
+                    // Rewire any inline cart buttons
+                    aiProductGrid.querySelectorAll('[data-add-to-cart]').forEach(function(btn) {
+                        btn.addEventListener('click', async function(e) {
+                            e.preventDefault(); e.stopPropagation();
+                            if (btn.disabled) return;
+                            var productId = btn.dataset.productId;
+                            var orig = btn.innerHTML;
+                            btn.disabled = true; btn.textContent = 'Adding…';
+                            try {
+                                var r = await fetch('/cart/add', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, credentials:'same-origin', body:JSON.stringify({productId: productId, quantity:1}) });
+                                var d = await r.json();
+                                if (!r.ok || !d.success) throw new Error(d.error || 'Could not add.');
+                                updateBadge(d.cartCount);
+                                showNotice(d.message || 'Added to cart!');
+                                btn.innerHTML = '<i class="fa-solid fa-check"></i> Added';
+                                btn.style.background = 'rgba(16,185,129,0.15)'; btn.style.borderColor = '#10b981'; btn.style.color = '#10b981';
+                                btn.disabled = true;
+                            } catch(err) {
+                                showNotice(err.message || 'Could not add to cart.', true);
+                                btn.disabled = false; btn.innerHTML = orig;
+                            }
+                        });
+                    });
+                }
+            }
+
+        } catch (err) {
+            console.error('[AI Search] Error:', err);
+            if (aiExplainText) aiExplainText.textContent = err.message || 'Something went wrong. Please try again.';
+            if (aiProductGrid) aiProductGrid.innerHTML = '';
+            if (aiEmptyState) aiEmptyState.style.display = 'block';
+            showNotice(err.message || 'Search failed. Please try again.', true);
+        } finally {
+            heroBtn.innerHTML = originalBtnHtml;
+            heroBtn.disabled = false;
+            if (typeof window.ncReplaceIcons === 'function') window.ncReplaceIcons();
+        }
+    }
 
     if (heroBtn && heroInput) {
-        heroBtn.addEventListener('click', async function () {
-            const query = heroInput.value.trim();
-            if (!query) {
-                heroInput.focus();
-                return;
-            }
-
-            // UI Loading State
-            const originalBtnHtml = heroBtn.innerHTML;
-            heroBtn.innerHTML = `<span class="spinner" style="margin-right:8px; border-width: 2px;"></span> <span>Thinking...</span>`;
-            heroBtn.disabled = true;
-
-            try {
-                const response = await axios.post('/api/products/ai-search', { query });
-                const result = response.data;
-                
-                if (result.success && productGrid) {
-                    if (sectionTitle) {
-                        sectionTitle.innerHTML = `✨ AI Results for: "${query}"`;
-                    }
-                    
-                    if (result.count === 0) {
-                        const emptyMsg = result.message || "No products found matching your AI search.";
-                        productGrid.innerHTML = `
-                            <div class="shop-empty">
-                                <div class="shop-empty-icon">🔍</div>
-                                <h2>No Results Found</h2>
-                                <p>${emptyMsg}</p>
-                            </div>
-                        `;
-                        // Change grid layout temporarily for empty state
-                        productGrid.style.display = 'block';
-                    } else {
-                        productGrid.style.display = 'grid'; // Restore grid
-                        // Re-render product grid using the new DOM classes
-                        productGrid.innerHTML = result.data.map(product => `
-                            <a href="/product/${product._id}" class="product-card">
-                                ${product.isFeatured ? '<span class="product-badge">Hot</span>' : ''}
-                                <button class="product-wishlist" aria-label="Add to wishlist">♡</button>
-                                <div class="product-card-image">
-                                    ${product.image ? `<img src="${product.image}" alt="${product.name || product.title}" data-product-image>` : (product.category ? product.category.icon : '📁')}
-                                </div>
-                                <div class="product-card-body">
-                                    <span class="product-category-tag">${product.category ? product.category.name : 'General'}</span>
-                                    <h3 class="product-title">${product.name || product.title}</h3>
-                                    <div class="product-meta">
-                                        <span class="product-price">₹${product.price.toFixed(2)}</span>
-                                        <span class="product-rating">
-                                            <i class="fa-solid fa-star"></i> ${product.ratings.average} 
-                                            <span class="product-rating-count">(${product.ratings.count})</span>
-                                        </span>
-                                    </div>
-                                    <button class="btn-add-cart" type="button" data-add-to-cart data-product-id="${product._id}">
-                                        <i class="fa-solid fa-cart-plus"></i> Add to Cart
-                                    </button>
-                                </div>
-                            </a>
-                        `).join('');
-                        
-                        // Re-bind wishlist buttons
-                        bindWishlists();
-                        bindProductImageFallbacks(productGrid);
-                    }
-                    
-                    // Scroll down to results
-                    if (sectionTitle) {
-                        sectionTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    } else {
-                        productGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }
-            } catch (err) {
-                console.error("Search error:", err);
-                alert("Failed to perform AI search. Please try again.");
-            } finally {
-                // Restore UI
-                heroBtn.innerHTML = originalBtnHtml;
-                heroBtn.disabled = false;
-            }
-        });
-
-        // Allow Enter key
+        heroBtn.addEventListener('click', doAISearch);
         heroInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') heroBtn.click();
+            if (e.key === 'Enter') doAISearch();
         });
     }
 

@@ -41,10 +41,11 @@
 
         <!-- Suggestion Pills -->
         <div class="hero-pills">
-            <button class="hero-pill" onclick="document.getElementById('hero-search').value = this.innerText; document.getElementById('hero-search').focus();">Gaming laptop under ₹80k</button>
-            <button class="hero-pill" onclick="document.getElementById('hero-search').value = this.innerText; document.getElementById('hero-search').focus();">Best wireless earbuds for running</button>
-            <button class="hero-pill" onclick="document.getElementById('hero-search').value = this.innerText; document.getElementById('hero-search').focus();">Ergonomic office chair</button>
+            <button class="hero-pill" onclick="document.getElementById('hero-search').value = this.innerText.trim(); document.getElementById('hero-search-btn').click();">Gaming laptop under ₹80k</button>
+            <button class="hero-pill" onclick="document.getElementById('hero-search').value = this.innerText.trim(); document.getElementById('hero-search-btn').click();">Best wireless earbuds for running</button>
+            <button class="hero-pill" onclick="document.getElementById('hero-search').value = this.innerText.trim(); document.getElementById('hero-search-btn').click();">Ergonomic office chair</button>
         </div>
+
 
         <div class="hero-trust">
             <span class="trust-item"><i class="fa-solid fa-bolt" style="color:var(--warning)"></i> Instant results</span>
@@ -55,7 +56,39 @@
     </div>
 </section>
 
-<!-- ======== CATEGORIES ======== -->
+<!-- ======== AI SEARCH RESULTS PANEL ======== -->
+<div id="ai-results-panel" style="display:none; padding: 0 24px 40px;">
+    <!-- AI Explanation Card -->
+    <div id="ai-explanation-card" style="max-width:960px; margin: 0 auto 28px; padding:16px 20px; border-radius:16px; background:linear-gradient(135deg, rgba(139,92,246,0.10) 0%, rgba(34,211,238,0.08) 100%); border:1px solid rgba(139,92,246,0.25); display:flex; align-items:flex-start; gap:14px;">
+        <div style="width:36px; height:36px; flex-shrink:0; background:var(--grad-purple); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px;">
+            <i class="fa-solid fa-robot"></i>
+        </div>
+        <div>
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--purple-lt); margin-bottom:4px;">NeuraCart AI</div>
+            <p id="ai-explanation-text" style="margin:0; font-size:14px; color:var(--text-hi); line-height:1.6;"></p>
+        </div>
+    </div>
+
+    <!-- Search Results Header -->
+    <div style="max-width:960px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+        <h2 id="ai-results-title" style="font-size:18px; font-weight:700; color:var(--text-hi); margin:0;"></h2>
+        <button id="ai-clear-search" type="button" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:999px;border:1.5px solid var(--border);background:none;color:var(--text-md);cursor:pointer;font-size:13px;font-weight:600;">
+            <i class="fa-solid fa-xmark"></i> Clear Search
+        </button>
+    </div>
+
+    <!-- Product Cards Grid -->
+    <div id="ai-product-grid" class="product-grid" style="max-width:960px; margin:0 auto;"></div>
+
+    <!-- Empty State -->
+    <div id="ai-empty-state" style="display:none; max-width:960px; margin:0 auto; padding:56px 24px; text-align:center;">
+        <div style="font-size:52px; margin-bottom:16px;">🔍</div>
+        <h3 style="font-size:20px; font-weight:700; color:var(--text-hi); margin-bottom:8px;">No matching products found</h3>
+        <p style="color:var(--text-md); font-size:14px;">Try a different keyword, budget, or browse our categories below.</p>
+    </div>
+</div>
+
+
 <div class="section-wrapper">
     <div class="section-header">
         <h2 class="section-title">Shop by Category</h2>
