@@ -198,12 +198,45 @@ app.get("/", async (req, res) => {
 // Deals Page
 app.get("/deals", async (req, res) => {
     try {
-        // Fetch products priced under a certain amount, or randomly sampled for now
-        const products = await Product.find({ price: { $lt: 50 }, image: { $exists: true, $ne: "" } }).populate("category").limit(20);
-        res.render("deals", { title: "Today's Deals - NeuraCart", products });
+        // Fetch all products with images for deals
+        const allProducts = await Product.find({ image: { $exists: true, $ne: "" } }).populate("category").sort({ price: 1 }).limit(40);
+
+        // Featured deal: highest-priced product (best visual impact)
+        const featuredDeal = allProducts.length > 0 ? allProducts[allProducts.length - 1] : null;
+
+        // Flash deals: cheapest 8 products (biggest perceived savings)
+        const flashDeals = allProducts.slice(0, 8);
+
+        // More deals: remaining products excluding featured
+        const moreDeals = allProducts.filter(p => 
+            featuredDeal ? p._id.toString() !== featuredDeal._id.toString() : true
+        ).slice(8);
+
+        // Get unique categories from deal products for filter pills
+        const dealCategories = [...new Map(
+            allProducts
+                .filter(p => p.category && p.category.name)
+                .map(p => [p.category.name, p.category])
+        ).values()];
+
+        res.render("deals", { 
+            title: "Today's Deals - NeuraCart", 
+            featuredDeal,
+            flashDeals,
+            moreDeals,
+            dealCategories,
+            totalDeals: allProducts.length
+        });
     } catch (err) {
         console.error(err);
-        res.render("deals", { title: "Today's Deals", products: [] });
+        res.render("deals", { 
+            title: "Today's Deals", 
+            featuredDeal: null,
+            flashDeals: [],
+            moreDeals: [],
+            dealCategories: [],
+            totalDeals: 0
+        });
     }
 });
 
