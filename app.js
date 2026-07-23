@@ -143,11 +143,16 @@ app.get("/shop", async (req, res, next) => {
         const query = { image: { $exists: true, $ne: "" }, title: { $exists: true, $ne: "" } };
 
         let activeCategorySlug = "";
-        if (category) {
+        if (category && category !== "All Categories" && category !== "All" && category.toLowerCase() !== "all" && category.trim() !== "") {
             const selected = categories.find(c => c.slug.toLowerCase() === category.toLowerCase() || c.name.toLowerCase() === category.toLowerCase());
             if (selected) {
-                query.category = selected._id;
+                query.$or = [
+                    { category: selected._id },
+                    { category: new RegExp(`^${category}$`, 'i') }
+                ];
                 activeCategorySlug = selected.slug;
+            } else {
+                query.category = new RegExp(`^${category}$`, 'i');
             }
         }
 
@@ -363,17 +368,35 @@ app.get("/ai-picks", ensureAuthenticated, async (req, res) => {
 app.get("/product/:id", async (req, res) => {
     try {
         const Review = require("./models/Review");
-        const product = await Product.findById(req.params.id).populate("category");
-        if (!product) return res.status(404).send("Product not found");
+        
+        let product;
+        try {
+            product = await Product.findById(req.params.id).populate("category");
+        } catch (e) {
+            product = null;
+        }
+
+        if (!product) {
+            return res.status(404).render("product", {
+                title: "Product Not Found - NeuraCart",
+                product: null,
+                reviews: [],
+                similarProducts: [],
+                error: "Product not found"
+            });
+        }
 
         const reviews = await Review.find({ product: product._id })
             .populate("user", "name")
             .sort({ createdAt: -1 });
 
-        const similarProducts = await Product.find({ 
-            category: product.category._id, 
-            _id: { $ne: product._id } 
-        }).limit(4);
+        let similarProducts = [];
+        if (product.category && product.category._id) {
+            similarProducts = await Product.find({ 
+                category: product.category._id, 
+                _id: { $ne: product._id } 
+            }).limit(4);
+        }
 
         res.render("product", {
             title: `${product.title} - NeuraCart`,
@@ -381,7 +404,13 @@ app.get("/product/:id", async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).send("Server Error");
+        res.status(500).render("product", {
+            title: "Server Error - NeuraCart",
+            product: null,
+            reviews: [],
+            similarProducts: [],
+            error: "An internal server error occurred while retrieving this product."
+        });
     }
 });
 

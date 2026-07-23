@@ -276,25 +276,35 @@ Respond ONLY with a JSON array of the 4 best matching product IDs (strings). E.g
 
 exports.getCategoryPage = async (req, res, next) => {
     try {
-        const { categoryName } = req.params;
+        const categoryName = req.params.categoryName || req.query.category;
         const { sort, page } = req.query;
 
         // Fetch all categories for the UI
         const categories = await Category.find().sort({ name: 1 });
 
-        // Find the category (case-insensitive)
-        const category = categories.find(c => c.slug.toLowerCase() === categoryName.toLowerCase() || c.name.toLowerCase() === categoryName.toLowerCase());
+        const isAllCategories = !categoryName || categoryName === "All Categories" || categoryName === "All" || categoryName.toLowerCase() === "all" || categoryName.trim() === "";
 
-        if (!category) {
-            return res.status(404).render('404', { title: 'Category Not Found' });
+        // Find the category (case-insensitive)
+        let category = null;
+        if (!isAllCategories) {
+            category = categories.find(c => c.slug.toLowerCase() === categoryName.toLowerCase() || c.name.toLowerCase() === categoryName.toLowerCase());
+            if (!category) {
+                return res.status(404).render('404', { title: 'Category Not Found' });
+            }
         }
 
         // Build product query
         const query = { 
             image: { $exists: true, $ne: "" }, 
-            title: { $exists: true, $ne: "" },
-            category: category._id 
+            title: { $exists: true, $ne: "" }
         };
+
+        if (category) {
+            query.$or = [
+                { category: category._id },
+                { category: new RegExp(`^${categoryName}$`, 'i') }
+            ];
+        }
 
         // Build sort option
         let sortOption = { isFeatured: -1, createdAt: -1 };
@@ -312,10 +322,10 @@ exports.getCategoryPage = async (req, res, next) => {
         const products = await Product.find(query).populate('category').sort(sortOption).skip(skip).limit(limit);
 
         res.render('shop', {
-            title: `${category.name} - NeuraCart`,
+            title: category ? `${category.name} - NeuraCart` : "All Products - NeuraCart",
             products,
             categories,
-            activeCategory: category.slug, // normalized to DB slug (lowercase)
+            activeCategory: category ? category.slug : "", // normalized to DB slug (lowercase)
             activeSort: sort || "popular",
             searchQuery: "",
             hasNextPage,

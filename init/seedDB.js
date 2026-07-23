@@ -7,6 +7,14 @@ const User = require('../models/User');
 const Review = require('../models/Review');
 const bcrypt = require('bcrypt');
 
+const shoeProducts = require('./shoeProducts');
+const homeProducts = require('./homeProducts');
+const clothingProducts = require('./clothingProducts');
+const techProducts = require('./techProducts');
+const toyProducts = require('./toyProducts');
+const bookProducts = require('./bookProducts');
+
+
 const MONGODB_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGODB_URI, { family: 4 })
@@ -34,7 +42,7 @@ const mapCategorySlug = (rawCategory = '', title = '', tags = []) => {
     if (cat.includes('shoe') || cat.includes('heels') || cat.includes('sneaker') || cat.includes('boot') || t.includes('shoe') || t.includes('sneaker') || t.includes('boot') || t.includes('heels') || t.includes('footwear')) {
         return 'shoes';
     }
-    if (cat.includes('smartphone') || cat.includes('laptop') || cat.includes('tablet') || cat.includes('mobile-accessor') || cat.includes('electronics') || cat.includes('automotive') || cat.includes('motorcycle')) {
+    if (cat.includes('smartphone') || cat.includes('laptop') || cat.includes('tablet') || cat.includes('mobile-accessor') || cat.includes('electronics')) {
         return 'tech';
     }
     if (cat.includes('shirt') || cat.includes('dress') || cat.includes('top') || cat.includes('clothing') || cat.includes('bag') || cat.includes('sunglasses') || cat.includes('sports-accessor') || cat.includes('mens-') || cat.includes('womens-')) {
@@ -169,7 +177,21 @@ const seedDB = async () => {
             }))
         ];
 
-        const productsToSeed = allFetchedProducts.map(p => {
+        const filteredFetchedProducts = allFetchedProducts.filter(p => {
+            const rawCat = (p.categoryRaw || '').toLowerCase();
+            const titleLower = (p.title || '').toLowerCase();
+            const brandLower = (p.brand || '').toLowerCase();
+            const descLower = (p.description || '').toLowerCase();
+            return !rawCat.includes('motorcycle') &&
+                   !rawCat.includes('automotive') &&
+                   !rawCat.includes('vehicle') &&
+                   !titleLower.includes('motorcycle') &&
+                   !titleLower.includes('motogp') &&
+                   !brandLower.includes('motogp') &&
+                   !descLower.includes('motogp');
+        });
+
+        const productsToSeed = filteredFetchedProducts.map(p => {
             const catSlug = mapCategorySlug(p.categoryRaw, p.title, p.tags);
             const visualColor = extractVisualColor(p.title, p.description, p.tags);
             const subcategory = extractSubcategory({ category: p.categoryRaw });
@@ -194,8 +216,76 @@ const seedDB = async () => {
             };
         });
 
-        await Product.insertMany(productsToSeed);
-        console.log(`Successfully seeded ${productsToSeed.length} API products (FakeStore + DummyJSON) into MongoDB!`);
+        const mapLocalProduct = (p) => {
+            const title = p.title || p.name || "Untitled Product";
+            const name = p.name || p.title || "Untitled Product";
+            
+            // Normalize category slug
+            let catSlug = 'home';
+            const rawCat = (p.category || '').toLowerCase();
+            if (rawCat.includes('shoe') || rawCat.includes('wear') || rawCat.includes('footwear')) {
+                catSlug = 'shoes';
+            } else if (rawCat.includes('clothing') || rawCat.includes('apparel')) {
+                catSlug = 'clothing';
+            } else if (rawCat.includes('toy')) {
+                catSlug = 'toys';
+            } else if (rawCat.includes('tech') || rawCat.includes('electr')) {
+                catSlug = 'tech';
+            } else if (rawCat.includes('home') || rawCat.includes('decor') || rawCat.includes('furni')) {
+                catSlug = 'home';
+            } else if (rawCat.includes('beauty') || rawCat.includes('care')) {
+                catSlug = 'beauty';
+            } else if (rawCat.includes('grocer')) {
+                catSlug = 'groceries';
+            } else if (rawCat.includes('book')) {
+                catSlug = 'books';
+            }
+
+            const categoryId = getCategory(catSlug);
+            
+            let description = p.description || p.imageDescription;
+            if (!description) {
+                description = `${title} - A high-quality product in the ${p.subcategory || 'General'} subcategory.`;
+            }
+
+            const visualColor = p.color || extractVisualColor(title, description, p.aiTags || []);
+            const aiTags = Array.isArray(p.aiTags) ? p.aiTags : (p.color ? [p.color] : []);
+
+            return {
+                name,
+                title,
+                brand: p.brand || 'Generic',
+                description,
+                price: typeof p.price === 'number' ? p.price : 29.99,
+                category: categoryId,
+                subcategory: p.subcategory || 'General',
+                visualColor,
+                image: p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80',
+                images: p.images || [p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80'],
+                stock: typeof p.stock === 'number' ? p.stock : 100,
+                attributes: p.attributes || { color: visualColor, Color: visualColor },
+                aiTags,
+                rating: typeof p.rating === 'number' ? p.rating : 4.0,
+                ratings: p.ratings || { average: typeof p.rating === 'number' ? p.rating : 4.0, count: Math.floor(Math.random() * 200) + 20 }
+            };
+        };
+
+        const localMapped = [
+            ...shoeProducts.map(mapLocalProduct),
+            ...homeProducts.map(mapLocalProduct),
+            ...clothingProducts.map(mapLocalProduct),
+            ...techProducts.map(mapLocalProduct),
+            ...toyProducts.map(mapLocalProduct),
+            ...bookProducts.map(mapLocalProduct)
+        ];
+
+        const finalProductsToSeed = [
+            ...productsToSeed,
+            ...localMapped
+        ];
+
+        await Product.insertMany(finalProductsToSeed);
+        console.log(`Successfully seeded ${finalProductsToSeed.length} products (API + Local files) into MongoDB!`);
         process.exit(0);
 
     } catch (error) {

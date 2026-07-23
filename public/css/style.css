@@ -229,7 +229,7 @@ h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; color: var(--text-hi); li
 .product-wishlist[data-filled="true"] { color: #f87171; background: rgba(248,113,113,0.12); }
 .product-card-body { padding: 14px; }
 .product-category-tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--purple-lt); margin-bottom: 6px; display: block; }
-.product-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-hi); line-height: 1.35; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.product-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-hi); line-height: 1.35; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .product-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .product-price { font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700; color: var(--text-hi); }
 .product-rating { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--warning); }
@@ -403,9 +403,17 @@ h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; color: var(--text-hi); li
 .auth-left { background: var(--surface-2); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 60px 48px; }
 .auth-left::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at top left, rgba(139,92,246,0.15) 0%, transparent 50%), radial-gradient(circle at bottom right, rgba(34,211,238,0.15) 0%, transparent 50%); }
 .auth-left::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(139,92,246,0.3) 1px, transparent 1px); background-size: 32px 32px; opacity: 0.5; }
-.auth-left-content { position: relative; z-index: 1; text-align: center; max-width: 420px; }
+.auth-left-content { position: relative; z-index: 1; text-align: center; max-width: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .auth-left-content h2 { font-size: clamp(32px, 4vw, 44px); font-weight: 800; color: var(--text-hi); margin-bottom: 16px; line-height: 1.1; }
 .auth-left-content p { font-size: 16px; color: var(--text-med); line-height: 1.6; }
+.auth-hero-logo {
+  width: 90px;
+  height: auto;
+  margin-bottom: 1.5rem;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 4px 12px rgba(108, 92, 231, 0.15));
+}
 
 .auth-right { display: flex; align-items: center; justify-content: center; padding: 60px 48px; background: var(--bg); position: relative; }
 .auth-card { width: 100%; max-width: 420px; position: relative; z-index: 2; }
@@ -651,7 +659,7 @@ h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; color: var(--text-hi); li
 .deal-featured-body { padding: 32px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
 .deal-featured-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: var(--r-full); background: rgba(255,71,87,0.12); border: 1px solid rgba(255,71,87,0.25); color: #ff6b7a; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; width: fit-content; }
 .deal-featured-title { font-family: 'Outfit', sans-serif; font-size: clamp(18px, 2.5vw, 26px); font-weight: 700; color: var(--text-hi); line-height: 1.3; margin: 0; }
-.deal-featured-desc { font-size: 14px; color: var(--text-med); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.deal-featured-desc { font-size: 14px; color: var(--text-med); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .deal-featured-prices { display: flex; align-items: baseline; gap: 12px; }
 .deal-featured-price-current { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 800; color: var(--text-hi); }
 .deal-featured-price-original { font-size: 16px; color: var(--text-lo); text-decoration: line-through; }
@@ -670,7 +678,7 @@ h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; color: var(--text-hi); li
 .deal-card-timer { position: absolute; bottom: 10px; right: 10px; background: rgba(10,10,24,0.75); backdrop-filter: blur(8px); color: #ff6b7a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: var(--r-full); z-index: 2; display: flex; align-items: center; gap: 4px; }
 .deal-card-body { padding: 14px; flex: 1; display: flex; flex-direction: column; }
 .deal-card-category { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--purple-lt); margin-bottom: 6px; }
-.deal-card-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-hi); line-height: 1.35; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+.deal-card-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-hi); line-height: 1.35; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
 .deal-card-price-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .deal-card-price { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; color: var(--text-hi); }
 .deal-card-original { font-size: 13px; color: var(--text-lo); text-decoration: line-through; }
@@ -709,4 +717,49 @@ h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; color: var(--text-hi); li
     .deals-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
     .deals-stats { gap: 16px; }
     .deal-promo-banner { flex-direction: column; text-align: center; padding: 24px 20px; }
+}
+
+/* ============================== AI PICKS PAGE ============================== */
+.ai-picks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 32px;
+}
+
+.ai-picks-grid .product-card-image {
+    height: 220px;
+    aspect-ratio: auto;
+    width: 100%;
+}
+
+.ai-picks-rationale {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-med);
+    background: var(--surface-2);
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    border: 1px solid var(--border);
+}
+
+.ai-picks-rationale i {
+    color: var(--purple-lt);
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .ai-picks-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 14px;
+        margin-top: 20px;
+    }
+    
+    .ai-picks-grid .product-card-image {
+        height: 160px;
+    }
 }

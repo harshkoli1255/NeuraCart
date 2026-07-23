@@ -1,3 +1,15 @@
+<% if (typeof product === 'undefined' || !product) { %>
+<div class="pdp-page" style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+    <div class="pdp-error-container" style="text-align: center; padding: 40px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; max-width: 500px; backdrop-filter: blur(10px);">
+        <div style="font-size: 64px; margin-bottom: 20px;">🔍</div>
+        <h1 style="font-size: 24px; margin-bottom: 12px; font-weight: 600;">Product Not Found</h1>
+        <p style="color: var(--text-muted); font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+            <%= typeof error !== 'undefined' ? error : "The product you're looking for might have been removed or does not exist." %>
+        </p>
+        <a href="/shop" style="display: inline-block; padding: 10px 24px; background: var(--grad-main); color: white; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px;">Back to Shop</a>
+    </div>
+</div>
+<% } else { %>
 <div class="pdp-page">
     <div class="pdp-container">
         
@@ -5,8 +17,8 @@
         <div class="pdp-breadcrumb">
             <a href="/">Home</a> <span>›</span> 
             <a href="/shop">Shop</a> <span>›</span>
-            <a href="/shop?category=<%= product.category.slug %>"><%= product.category.name %></a> <span>›</span>
-            <span><%= product.title %></span>
+            <a href="/shop?category=<%= (product.category && product.category.slug) ? product.category.slug : 'general' %>"><%= (product.category && product.category.name) ? product.category.name : 'General' %></a> <span>›</span>
+            <span><%= product.title || 'Untitled Product' %></span>
         </div>
 
         <!-- Top Fold -->
@@ -20,9 +32,9 @@
                     <% } %>
                     <div class="pdp-main-img" id="mainImageDisplay">
                         <% if (product.image) { %>
-                            <img src="<%= product.image %>" alt="<%= product.title %>" data-product-image>
+                            <img src="<%= product.image %>" alt="<%= product.title || 'Product Image' %>" data-product-image>
                         <% } else { %>
-                            <span style="font-size: 80px"><%= product.category.icon %></span>
+                            <span style="font-size: 80px"><%= (product.category && product.category.icon) ? product.category.icon : '📁' %></span>
                         <% } %>
                     </div>
                 </div>
@@ -30,22 +42,22 @@
 
             <!-- Info -->
             <div class="pdp-info-col">
-                <h1 class="pdp-title"><%= product.title %></h1>
+                <h1 class="pdp-title"><%= product.title || 'Untitled Product' %></h1>
                 
                 <div class="pdp-rating-row">
                     <span class="pdp-rating-stars">
                         <% for(let i=1; i<=5; i++) { %>
-                            <i class="<%= i <= Math.round(product.ratings.average) ? 'fa-solid' : 'fa-regular' %> fa-star"></i>
+                            <i class="<%= i <= Math.round(product.ratings ? product.ratings.average : (product.rating || 0)) ? 'fa-solid' : 'fa-regular' %> fa-star"></i>
                         <% } %>
                     </span>
-                    <span><%= product.ratings.average %></span>
-                    <span>(<%= product.ratings.count %> reviews)</span>
+                    <span><%= product.ratings ? product.ratings.average : (product.rating || 0) %></span>
+                    <span>(<%= product.ratings ? product.ratings.count : 0 %> reviews)</span>
                 </div>
 
                 <div class="pdp-price-row">
-                    <span class="pdp-price">₹<%= product.price.toFixed(2) %></span>
-                    <span class="pdp-price-old">₹<%= (product.price * 1.25).toFixed(2) %></span>
-                    <span class="pdp-stock-pill"><%= product.stock > 0 ? 'In Stock' : 'Out of Stock' %></span>
+                    <span class="pdp-price">₹<%= (product.price || 0).toFixed(2) %></span>
+                    <span class="pdp-price-old">₹<%= ((product.price || 0) * 1.25).toFixed(2) %></span>
+                    <span class="pdp-stock-pill"><%= (product.stock || 0) > 0 ? 'In Stock' : 'Out of Stock' %></span>
                 </div>
 
                 <div class="pdp-meta-table">
@@ -55,7 +67,7 @@
                     </div>
                     <div class="pdp-meta-row">
                         <span class="pdp-meta-label">Category</span>
-                        <span class="pdp-meta-value"><%= product.category.name %></span>
+                        <span class="pdp-meta-value"><%= (product.category && product.category.name) ? product.category.name : 'General' %></span>
                     </div>
                     <% if(product.subcategory) { %>
                     <div class="pdp-meta-row">
@@ -327,3 +339,4 @@
         }
     }
 </script>
+<% } %>

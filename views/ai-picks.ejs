@@ -1,62 +1,66 @@
-<div class="shop-page-wrapper">
+<div class="shop-page">
     <!-- Header Section -->
     <div class="shop-header">
-        <h1><i class="fa-solid fa-sparkles" style="background: var(--grad-purple); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-right: 12px;"></i>AI Picks For You</h1>
+        <h1>
+            <i class="fa-solid fa-sparkles" style="background: var(--grad-purple); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-right: 12px;"></i>
+            AI Picks For You
+        </h1>
         <p>A highly personalized selection of products curated by NeuraCart AI, specifically tailored to your unique tastes and previous browsing history.</p>
     </div>
 
     <% if (products && products.length > 0) { %>
-        <div class="products-grid">
+        <div class="ai-picks-grid">
             <% products.forEach(product => { %>
-                <div class="product-card" style="border: 1px solid var(--primary); box-shadow: 0 4px 20px rgba(139,92,246,0.15);">
-                    <a href="/product/<%= product._id %>" class="product-link">
-                        <div class="product-image-wrap">
-                            <img src="<%= product.image %>" alt="<%= product.title %>" class="product-image">
-                            <div class="product-badge" style="background: var(--grad-purple); color: white;">
+                <div class="product-card">
+                    <!-- Wishlist button consistent with Shop page -->
+                    <button class="product-wishlist" aria-label="Add to wishlist" data-product-id="<%= product._id %>">
+                        <i class="fa-regular fa-heart"></i>
+                    </button>
+                    
+                    <a href="/product/<%= product._id %>" class="product-link" style="text-decoration: none; color: inherit; display: block;">
+                        <div class="product-card-image">
+                            <% if (product.image) { %>
+                                <img src="<%= product.image %>" alt="<%= product.title %>" loading="lazy" decoding="async" data-product-image>
+                            <% } else { %>
+                                <%= product.category?.icon || '📁' %>
+                            <% } %>
+                            <div class="product-badge">
                                 <i class="fa-solid fa-star"></i> 99% Match
                             </div>
                         </div>
-                        <div class="product-info">
-                            <span class="product-category"><%= product.category ? product.category.name : 'General' %></span>
+                        
+                        <div class="product-card-body">
+                            <span class="product-category-tag"><%= product.brand || (product.category ? product.category.name : 'General') %></span>
                             <h3 class="product-title"><%= product.title %></h3>
-                            <div class="product-price-row">
-                                <span class="product-price">$<%= product.price.toFixed(2) %></span>
+                            <div class="product-meta">
+                                <span class="product-price">₹<%= product.price.toFixed(2) %></span>
                             </div>
                             
                             <!-- AI Rationale -->
-                            <div style="margin-top: 12px; font-size: 0.85em; color: var(--text-muted); background: var(--surface-2); padding: 8px; border-radius: 6px; display: flex; gap: 8px; align-items: flex-start;">
-                                <i class="fa-solid fa-microchip" style="color: var(--primary); margin-top: 3px;"></i>
+                            <div class="ai-picks-rationale">
+                                <i class="fa-solid fa-microchip"></i>
                                 <span>Because you recently searched for similar <%= product.category ? product.category.name.toLowerCase() : 'items' %>.</span>
                             </div>
                         </div>
                     </a>
                     
-                    <form action="/cart/add" method="POST" class="add-to-cart-form" style="margin-top: 12px;">
-                        <input type="hidden" name="productId" value="<%= product._id %>">
-                        <input type="hidden" name="quantity" value="1">
-                        <% 
-                           const inCart = locals.cartItems && locals.cartItems.some(item => item.productId === product._id.toString());
-                        %>
-                        <button type="submit" class="add-cart-btn <%= inCart ? 'in-cart' : '' %>" <%= inCart ? 'disabled' : '' %>>
-                            <% if (inCart) { %>
-                                <i class="fa-solid fa-check"></i> Added
-                            <% } else { %>
-                                <i class="fa-regular fa-cart-shopping"></i> Add to Cart
-                            <% } %>
+                    <div class="product-card-footer" style="padding: 0 14px 14px 14px;">
+                        <button class="btn btn-primary" type="button" data-add-to-cart data-product-id="<%= product._id %>" style="width: 100%;">
+                            <i class="fa-solid fa-cart-plus"></i> Add to Cart
                         </button>
-                    </form>
+                    </div>
                 </div>
             <% }) %>
         </div>
     <% } else { %>
-        <!-- Empty State -->
-        <div class="empty-state">
-            <div class="empty-icon">
-                <i class="fa-solid fa-robot"></i>
+        <!-- Empty State matching standard Shop Empty layout -->
+        <div class="shop-empty">
+            <div class="shop-empty-icon">
+                <i class="fa-solid fa-robot" style="color: var(--purple-lt);"></i>
             </div>
             <h2>We're learning your preferences</h2>
             <p>Browse more products and use the AI Search to help us build your personalized profile!</p>
-            <a href="/shop" class="nc-cta" style="margin-top: 24px;">Explore Shop</a>
+            <a href="/shop" class="btn btn-primary" style="margin-top: 16px;">Explore Shop</a>
         </div>
     <% } %>
 </div>
