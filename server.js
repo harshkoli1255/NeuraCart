@@ -4,9 +4,13 @@ process.on('unhandledRejection', (err) => {
 });
 require("dotenv").config();
 const app = require("./app");
-const connectDB = require("./config/database");
+const clientPromise = require("./config/database");
 
-connectDB();
+clientPromise.then(() => {
+    console.log("Database initialized. Starting server...");
+}).catch(err => {
+    console.error("Failed to connect to DB on startup:", err);
+});
 
 const PORT_BUYER = process.env.PORT || 3000;
 const PORT_SELLER = process.env.SELLER_PORT || 3001;

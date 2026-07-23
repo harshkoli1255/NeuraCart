@@ -39,7 +39,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-const sessionStore = MongoStore.create({ mongoUrl: process.env.MONGO_URI });
+const clientPromise = require('./config/database');
+const sessionStore = MongoStore.create({ 
+    clientPromise: clientPromise,
+});
 sessionStore.on('error', (error) => {
     console.error('Session store error:', error.message);
     // Prevents the Node.js process from crashing on unhandled rejection
