@@ -11,13 +11,12 @@
     <% if (products && products.length > 0) { %>
         <div class="ai-picks-grid">
             <% products.forEach(product => { %>
-                <div class="product-card">
-                    <!-- Wishlist button consistent with Shop page -->
+                <div class="product-card" style="cursor: pointer;" onclick="if(!event.target.closest('button')) window.location.href='/product/<%= product._id %>'">
                     <button class="product-wishlist" aria-label="Add to wishlist" data-product-id="<%= product._id %>">
                         <i class="fa-regular fa-heart"></i>
                     </button>
                     
-                    <a href="/product/<%= product._id %>" class="product-link" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="product-link" style="text-decoration: none; color: inherit; display: block;">
                         <div class="product-card-image">
                             <% if (product.image) { %>
                                 <img src="<%= product.image %>" alt="<%= product.title %>" loading="lazy" decoding="async" data-product-image>
@@ -36,13 +35,12 @@
                                 <span class="product-price">₹<%= product.price.toFixed(2) %></span>
                             </div>
                             
-                            <!-- AI Rationale -->
                             <div class="ai-picks-rationale">
                                 <i class="fa-solid fa-microchip"></i>
                                 <span>Because you recently searched for similar <%= product.category ? product.category.name.toLowerCase() : 'items' %>.</span>
                             </div>
                         </div>
-                    </a>
+                    </div>
                     
                     <div class="product-card-footer" style="padding: 0 14px 14px 14px;">
                         <button class="btn btn-primary" type="button" data-add-to-cart data-product-id="<%= product._id %>" style="width: 100%;">

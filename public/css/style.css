@@ -235,8 +235,8 @@ h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; color: var(--text-hi); li
 .product-rating { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--warning); }
 .product-rating-count { color: var(--text-lo); font-weight: 400; }
 .product-stock-low { font-size: 11px; color: var(--error); font-weight: 500; margin-bottom: 8px; }
-.btn-add-cart { width: 100%; min-height: 44px; padding: 9px; background: var(--surface-2); border: 1px solid var(--border-2); border-radius: var(--r-sm); color: var(--text-hi); font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background var(--ease), border-color var(--ease), color var(--ease), transform var(--bounce); }
-.btn-add-cart:hover { background: var(--purple); border-color: var(--purple); color: #fff; transform: translateY(-1px); }
+.btn-add-cart { width: 100%; min-height: 46px; padding: 10px; background: var(--grad-purple); border: none; border-radius: var(--r-md); color: #fff; font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform var(--bounce), box-shadow var(--ease); }
+.btn-add-cart:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139,92,246,0.30); color: #fff; }
 
 /* FEATURES */
 .features-section { padding: 80px 24px; background: var(--bg-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }

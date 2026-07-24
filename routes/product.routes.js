@@ -152,6 +152,7 @@ Respond ONLY with raw JSON array.`;
 
 router.post("/:id/review", ensureAuthenticated, uploadReviewMedia.array("media", 3), productController.addReview);
 router.delete("/:id/review/:reviewId", ensureAuthenticated, productController.deleteReview);
+router.get("/:id/reviews/summary", productController.getReviewSummary);
 
 // MUST BE LAST
 router.get("/:id", productController.getProductById);

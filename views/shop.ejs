@@ -72,7 +72,7 @@
             <% if (products && products.length > 0) { %>
                 <div class="catalogue-grid" id="product-grid">
                     <% products.forEach(product => { %>
-                        <a href="/product/<%= product._id %>" class="product-card">
+                        <div class="product-card" onclick="if(!event.target.closest('button')) window.location.href='/product/<%= product._id %>'">
                             <% if (product.isFeatured) { %>
                                 <span class="product-badge product-badge-ai">Hot</span>
                             <% } %>
@@ -101,7 +101,7 @@
                                     <i class="fa-solid fa-cart-plus"></i> Add to Cart
                                 </button>
                             </div>
-                        </a>
+                        </div>
                     <% }) %>
                 </div>
 

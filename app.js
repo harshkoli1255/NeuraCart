@@ -13,6 +13,13 @@ const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
 const passport = require("passport");
 const flash = require("connect-flash");
+const OpenAI = require("openai");
+
+// Initialize OpenAI with NVIDIA API for 2-stage search
+const openai = new OpenAI({
+    apiKey: process.env.NVIDIA_API_KEY,
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+});
 
 require("./config/passport")(passport);
 
@@ -102,6 +109,14 @@ app.use(async (req, res, next) => {
             res.locals.cartItems = cart.items.map(item => ({ productId: item.product.toString(), quantity: item.quantity }));
         }
     }
+    
+    try {
+        const Category = require('./models/Category');
+        res.locals.globalCategories = await Category.find().sort({ name: 1 });
+    } catch (err) {
+        res.locals.globalCategories = [];
+    }
+
     next();
 });
 
@@ -126,11 +141,13 @@ const cartRoutes = require('./routes/cart.routes');
 const sellerRoutes = require('./routes/seller.routes');
 const searchRoutes = require("./routes/search.routes");
 const dealAlertRoutes = require("./routes/dealAlert.routes");
+const aiRoutes = require("./routes/ai.routes");
 
 app.use("/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/deals/alerts", dealAlertRoutes);
+app.use("/api/ai", aiRoutes);
 app.use("/category", categoryRoutes);
 app.use('/cart', cartRoutes);
 app.use('/seller', sellerRoutes);
@@ -159,54 +176,8 @@ app.get("/shop", async (req, res, next) => {
             }
         }
 
-        if (q) {
-            const trimmedQ = q.trim();
-            const colors = ['red', 'blue', 'black', 'white', 'green', 'yellow', 'pink', 'purple', 'brown', 'orange', 'grey', 'gray', 'gold', 'silver', 'navy', 'beige', 'maroon', 'tan', 'crimson'];
-            const foundColor = colors.find(c => new RegExp(`\\b${c}\\b`, 'i').test(trimmedQ));
-            
-            if (foundColor) {
-                const colorRegex = new RegExp(`\\b${foundColor}\\b`, 'i');
-                const colorFilter = {
-                    $or: [
-                        { title: colorRegex },
-                        { name: colorRegex },
-                        { description: colorRegex },
-                        { imageDescription: colorRegex },
-                        { aiTags: colorRegex },
-                        { subcategory: colorRegex },
-                        { brand: colorRegex }
-                    ]
-                };
-
-                const restWords = trimmedQ.toLowerCase()
-                    .replace(new RegExp(`\\b${foundColor}\\b`, 'i'), '')
-                    .replace(/[^a-z0-9\s]/g, '')
-                    .trim()
-                    .split(/\s+/)
-                    .filter(w => w.length > 2 && !['show', 'the', 'for', 'buy', 'get', 'with', 'and'].includes(w));
-
-                if (restWords.length > 0) {
-                    const wordFilters = restWords.map(w => ({
-                        $or: [
-                            { title: new RegExp(w, 'i') },
-                            { name: new RegExp(w, 'i') },
-                            { description: new RegExp(w, 'i') },
-                            { subcategory: new RegExp(w, 'i') },
-                            { brand: new RegExp(w, 'i') },
-                            { aiTags: new RegExp(w, 'i') }
-                        ]
-                    }));
-                    query.$and = [colorFilter, ...wordFilters];
-                } else {
-                    Object.assign(query, colorFilter);
-                }
-            } else {
-                const pat = new RegExp(trimmedQ.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-                query.$or = [
-                    { name: pat }, { title: pat }, { description: pat }, { aiTags: pat }, { subcategory: pat }, { brand: pat }
-                ];
-            }
-        }
+        let products = [];
+        let totalProducts = 0;
 
         let sortOption = { isFeatured: -1, createdAt: -1 };
         if (sort === "price-low") sortOption = { price: 1 };
@@ -216,10 +187,92 @@ app.get("/shop", async (req, res, next) => {
         const currentPage = parseInt(page) || 1;
         const skip = (currentPage - 1) * limit;
 
-        const totalProducts = await Product.countDocuments(query);
-        const hasNextPage = (skip + limit) < totalProducts;
+        if (q) {
+            const trimmedQ = q.trim();
+            const aiService = require('./services/ai.service');
 
-        const products = await Product.find(query).populate("category").sort(sortOption).skip(skip).limit(limit);
+            // ── Stage 1: Use LLM to understand intent and expand query ──
+            let searchTerms = trimmedQ;
+            let aiIntent = trimmedQ;
+            try {
+                const expandCompletion = await openai.chat.completions.create({
+                    model: "meta/llama-3.1-70b-instruct",
+                    messages: [{
+                        role: "system",
+                        content: `You analyze shopping queries. Expand this user query into better search terms for our product database.
+Our store sells: Smartphones, Laptops, Fragrances, Skincare, Groceries, Home Decoration, Furniture, Clothing, Shoes, Watches, Bags, Jewellery.
+Query: "${trimmedQ}"
+Respond ONLY with JSON: {"searchTerms":"expanded terms","intent":"brief description"}
+Example: "red white shoes"→{"searchTerms":"footwear sneakers athletic shoes sports shoes","intent":"athletic footwear"}
+Example: "phone for gaming"→{"searchTerms":"smartphone high performance gaming phone mobile","intent":"gaming smartphone"}`
+                    }],
+                    temperature: 0.1,
+                    max_tokens: 80
+                });
+                const raw = expandCompletion.choices[0].message.content.trim().replace(/```json/g,'').replace(/```/g,'').trim();
+                const parsed = JSON.parse(raw);
+                searchTerms = parsed.searchTerms || trimmedQ;
+                aiIntent = parsed.intent || trimmedQ;
+                console.log(`[Shop Search] Expanded "${trimmedQ}" → "${searchTerms}" (${aiIntent})`);
+            } catch(e) {
+                console.warn('[Shop Search] LLM expansion failed, using raw query:', e.message);
+            }
+
+            // ── Stage 2: Generate Vector Embedding on expanded terms ──
+            let queryVector = [];
+            try {
+                queryVector = await aiService.generateQueryEmbedding(searchTerms);
+            } catch (e) {
+                console.error("Embedding generation failed, falling back to regex search.", e);
+            }
+
+            if (queryVector && queryVector.length > 0) {
+                const allProducts = await Product.find({ ...query, embedding: { $exists: true, $ne: [] } })
+                                                 .populate('category')
+                                                 .select('+embedding');
+
+                const cosineSimilarity = (vecA, vecB) => {
+                    let dot = 0, normA = 0, normB = 0;
+                    for (let i = 0; i < vecA.length; i++) {
+                        dot += vecA[i] * vecB[i];
+                        normA += vecA[i] * vecA[i];
+                        normB += vecB[i] * vecB[i];
+                    }
+                    if (normA === 0 || normB === 0) return 0;
+                    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+                };
+
+                const scoredProducts = allProducts.map(p => ({
+                    product: p,
+                    score: cosineSimilarity(queryVector, p.embedding)
+                }));
+
+                scoredProducts.sort((a, b) => b.score - a.score);
+
+                // Use adaptive threshold: if nothing above 0.60, return top-8 best matches
+                let matchedProducts = scoredProducts.filter(sp => sp.score > 0.60).map(sp => sp.product);
+                if (matchedProducts.length === 0) {
+                    console.log(`[Shop Search] No results above threshold, returning top-8 closest`);
+                    matchedProducts = scoredProducts.slice(0, 8).map(sp => sp.product);
+                }
+
+                totalProducts = matchedProducts.length;
+                if (sort === "price-low") matchedProducts.sort((a, b) => a.price - b.price);
+                if (sort === "price-high") matchedProducts.sort((a, b) => b.price - a.price);
+                products = matchedProducts.slice(skip, skip + limit);
+            } else {
+                // Regex fallback
+                const pat = new RegExp(trimmedQ.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+                query.$or = [{ name: pat }, { title: pat }, { description: pat }, { aiTags: pat }, { subcategory: pat }, { brand: pat }];
+                totalProducts = await Product.countDocuments(query);
+                products = await Product.find(query).populate("category").sort(sortOption).skip(skip).limit(limit);
+            }
+        } else {
+            totalProducts = await Product.countDocuments(query);
+            products = await Product.find(query).populate("category").sort(sortOption).skip(skip).limit(limit);
+        }
+
+        const hasNextPage = (skip + limit) < totalProducts;
 
         // If it's an AJAX request (e.g. from infinite scroll), send JSON
         if (req.xhr || req.headers.accept.indexOf('json') > -1) {
@@ -245,11 +298,80 @@ app.get("/shop", async (req, res, next) => {
 // Homepage
 app.get("/", async (req, res) => {
     try {
-        const products = await Product.find({ image: { $exists: true, $ne: "" }, title: { $exists: true, $ne: "" } }).populate("category").limit(8);
-        res.render("index", { title: "NeuraCart - AI Powered Shopping", products });
+        let products = [];
+        let isPersonalized = false;
+        
+        // 1. Check if user is logged in and has past orders
+        if (req.user && req.user.role === 'buyer') {
+            const Order = require('./models/Order');
+            const pastOrders = await Order.find({ user: req.user._id }).populate('items.product').lean();
+            
+            if (pastOrders.length > 0) {
+                // Generate a semantic profile from past purchases
+                const purchasedProducts = pastOrders.flatMap(o => o.items.map(i => i.product));
+                const uniqueTitles = [...new Set(purchasedProducts.filter(p => p).map(p => p.title))].slice(0, 5); // take top 5
+                
+                if (uniqueTitles.length > 0) {
+                    const aiService = require('./services/ai.service');
+                    try {
+                        const profileText = `Customer who bought: ${uniqueTitles.join(', ')}`;
+                        const queryVector = await aiService.generateQueryEmbedding(profileText);
+                        
+                        if (queryVector && queryVector.length > 0) {
+                            const boughtIds = purchasedProducts.map(p => p._id.toString());
+                            
+                            const cosineSimilarity = (vecA, vecB) => {
+                                let dot = 0, normA = 0, normB = 0;
+                                for (let i = 0; i < vecA.length; i++) {
+                                    dot += vecA[i] * vecB[i];
+                                    normA += vecA[i] * vecA[i];
+                                    normB += vecB[i] * vecB[i];
+                                }
+                                if (normA === 0 || normB === 0) return 0;
+                                return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+                            };
+                            
+                            const { getCachedEmbeddings } = require('./services/ai.service');
+                            const allEmbeddings = await getCachedEmbeddings();
+                            
+                            const scored = allEmbeddings
+                                .filter(p => !boughtIds.includes(p._id))
+                                .map(p => ({
+                                    id: p._id,
+                                    score: cosineSimilarity(queryVector, p.embedding)
+                                }));
+                            
+                            scored.sort((a, b) => b.score - a.score);
+                            const matchedIds = scored.slice(0, 8).map(s => s.id);
+                            
+                            const matchedProducts = await Product.find({ _id: { $in: matchedIds }, image: { $exists: true, $ne: "" } }).populate('category');
+                            
+                            products = matchedIds.map(id => {
+                                const p = matchedProducts.find(prod => prod._id.toString() === id.toString());
+                                return p ? p.toObject() : null;
+                            }).filter(Boolean);
+                            isPersonalized = true;
+                        }
+                    } catch (e) {
+                        console.warn("[Personalization] Vector search failed, falling back to default.", e.message);
+                    }
+                }
+            }
+        }
+        
+        // 2. Fallback to standard top products if no personalization found
+        if (products.length === 0) {
+            products = await Product.find({ image: { $exists: true, $ne: "" }, title: { $exists: true, $ne: "" } }).populate("category").limit(8);
+        }
+
+        res.render("index", { 
+            title: "NeuraCart - AI Powered Shopping", 
+            products,
+            isPersonalized
+        });
     } catch (err) {
         console.error(err);
-        res.render("index", { title: "NeuraCart", products: [] });
+        res.render("index", { title: "NeuraCart", products: [], isPersonalized: false });
     }
 });
 
@@ -398,7 +520,7 @@ app.get("/product/:id", async (req, res) => {
             similarProducts = await Product.find({ 
                 category: product.category._id, 
                 _id: { $ne: product._id } 
-            }).limit(4);
+            }).populate('category').limit(4);
         }
 
         res.render("product", {

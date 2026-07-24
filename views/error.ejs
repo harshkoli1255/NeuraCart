@@ -1,0 +1,17 @@
+<div style="min-height: 60vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem;">
+    <div>
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 4rem; color: var(--warning); margin-bottom: 1rem;"></i>
+        <h1 style="font-size: 2rem; margin-bottom: 0.5rem;"><%= title %></h1>
+        <p style="font-size: 1.1rem; color: var(--text-med); margin-bottom: 2rem;"><%= message %></p>
+        
+        <% if (error && Object.keys(error).length > 0) { %>
+            <div style="text-align: left; background: var(--surface-2); padding: 1rem; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 0.9rem;">
+                <pre><%= error.stack %></pre>
+            </div>
+        <% } %>
+        
+        <div style="margin-top: 2rem;">
+            <a href="/" class="btn btn-primary">Return Home</a>
+        </div>
+    </div>
+</div>

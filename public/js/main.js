@@ -82,6 +82,23 @@
         });
     });
 
+    // ==========================================
+    // 5. Deal Alerts Button Logic
+    // ==========================================
+    const dealAlertsBtn = document.getElementById('deal-alerts-btn');
+    if (dealAlertsBtn) {
+        dealAlertsBtn.addEventListener('click', function() {
+            // Change UI to reflect subscribed state
+            this.innerHTML = '<i class="fa-solid fa-check"></i> Subscribed!';
+            this.style.background = 'var(--success)';
+            this.style.color = '#fff';
+            this.style.pointerEvents = 'none'; // Prevent multiple clicks
+            
+            // In a real app, this would hit an endpoint like /api/user/subscribe
+            // fetch('/api/user/subscribe', { method: 'POST' });
+        });
+    }
+
     /* --------------------------------------------------
        3. WISHLIST TOGGLE
        -------------------------------------------------- */
@@ -321,7 +338,7 @@
         var avg   = (product.ratings && product.ratings.average) ? product.ratings.average : 0;
         var cnt   = (product.ratings && product.ratings.count)   ? product.ratings.count   : 0;
         var title = product.title || product.name || 'Product';
-        return '<a href="/product/' + product._id + '" class="product-card">' +
+        return '<div class="product-card" style="cursor:pointer;" onclick="if(!event.target.closest(\'button\')) window.location.href=\'/product/' + product._id + '\'">' +
             (product.isFeatured ? '<span class="product-badge product-badge-ai">Hot</span>' : '') +
             '<button class="product-wishlist" aria-label="Add to wishlist" data-product-id="' + product._id + '"><i class="fa-regular fa-heart"></i></button>' +
             '<div class="product-card-image">' +
@@ -338,7 +355,7 @@
                     '<i class="fa-solid fa-cart-plus"></i> Add to Cart' +
                 '</button>' +
             '</div>' +
-        '</a>';
+        '</div>';
     }
 
     function clearAISearch() {
@@ -395,22 +412,24 @@
             var count = (result.data && result.data.length) || 0;
 
             if (aiResultsTitle) {
-                aiResultsTitle.innerHTML = count > 0
-                    ? '✨ AI Results for <em>"' + query + '"</em> &nbsp;<span style="font-size:14px;font-weight:400;color:var(--text-md);">(' + count + ' found)</span>'
-                    : '';
+                if (count > 0) {
+                    aiResultsTitle.innerHTML = '✨ AI Results for <em>"' + query + '"</em> &nbsp;<span style="font-size:14px;font-weight:400;color:var(--text-lo);">(' + count + ' products found)</span>';
+                } else {
+                    aiResultsTitle.innerHTML = '🔍 Searching our catalog for closest matches to <em>"' + query + '"</em>';
+                }
             }
 
-            if (count === 0) {
-                if (aiProductGrid) aiProductGrid.innerHTML = '';
-                if (aiEmptyState) aiEmptyState.style.display = 'block';
-            } else {
-                if (aiEmptyState) aiEmptyState.style.display = 'none';
+            // Always hide empty state — backend now always returns results via fallback
+            if (aiEmptyState) aiEmptyState.style.display = 'none';
+            
+            if (count > 0) {
                 if (aiProductGrid) {
                     aiProductGrid.innerHTML = result.data.map(buildAIProductCard).join('');
                     // Re-bind cart buttons for dynamically rendered cards
                     if (typeof renderReactiveCartButtons === 'function') renderReactiveCartButtons();
                     if (typeof bindWishlists === 'function') bindWishlists();
                     if (typeof bindProductImageFallbacks === 'function') bindProductImageFallbacks(aiProductGrid);
+                    if (typeof window.ncReplaceIcons === 'function') window.ncReplaceIcons();
                     // Rewire any inline cart buttons
                     aiProductGrid.querySelectorAll('[data-add-to-cart]').forEach(function(btn) {
                         btn.addEventListener('click', async function(e) {
@@ -435,7 +454,12 @@
                         });
                     });
                 }
+            } else {
+                // No results at all (very unlikely now) — show empty state
+                if (aiProductGrid) aiProductGrid.innerHTML = '';
+                if (aiEmptyState) aiEmptyState.style.display = 'block';
             }
+
 
         } catch (err) {
             console.error('[AI Search] Error:', err);
@@ -494,7 +518,7 @@
                     
                     if (data.products && data.products.length > 0) {
                         const newCards = data.products.map(product => `
-                            <a href="/product/${product._id}" class="product-card">
+                            <div class="product-card" style="cursor:pointer;" onclick="if(!event.target.closest('button')) window.location.href='/product/${product._id}'">
                                 ${product.isFeatured ? '<span class="product-badge product-badge-ai">Hot</span>' : ''}
                                 <button class="product-wishlist" aria-label="Add to wishlist"><i class="fa-regular fa-heart"></i></button>
                                 <div class="product-card-image">
@@ -515,10 +539,11 @@
                                         <i class="fa-solid fa-cart-plus"></i> Add to Cart
                                     </button>
                                 </div>
-                            </a>
+                            </div>
                         `).join('');
 
-                        productGridEl.insertAdjacentHTML('beforeend', newCards);
+                        document.getElementById('product-grid').insertAdjacentHTML('beforeend', newCards);
+                        if (typeof window.ncReplaceIcons === 'function') window.ncReplaceIcons();
                         
                         // Rebind listeners on the newly added elements
                         bindWishlists();
@@ -548,5 +573,97 @@
     }
 
     // Theme toggling has been moved to theme.js
+
+    // AI Product Summary
+    const btnAiSummary = document.getElementById('btnAiSummary');
+    if (btnAiSummary) {
+        btnAiSummary.addEventListener('click', async () => {
+            const pid = btnAiSummary.getAttribute('data-id');
+            const contentBox = document.getElementById('aiSummaryContent');
+            
+            btnAiSummary.disabled = true;
+            btnAiSummary.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...';
+            contentBox.innerHTML = '<div style="display:flex; gap:8px;"><div class="ai-typing-dot" style="background:var(--purple); width:6px; height:6px; border-radius:50%;"></div><div class="ai-typing-dot" style="background:var(--purple); width:6px; height:6px; border-radius:50%;"></div><div class="ai-typing-dot" style="background:var(--purple); width:6px; height:6px; border-radius:50%;"></div></div>';
+
+            try {
+                const res = await fetch(`/api/ai/product/${pid}/summary`);
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                
+                contentBox.innerHTML = data.summary.replace(/\n/g, '<br>');
+                btnAiSummary.innerHTML = '<i class="fa-solid fa-check"></i> Done';
+            } catch (e) {
+                contentBox.innerHTML = '<span style="color:var(--danger);">Failed to generate summary.</span>';
+                btnAiSummary.disabled = false;
+                btnAiSummary.innerText = 'Retry';
+            }
+        });
+    }
+
+    // AI Product Q&A
+    const aiQaForm = document.getElementById('aiQaForm');
+    const aiQaInput = document.getElementById('aiQaInput');
+    const aiQaLog = document.getElementById('aiQaLog');
+
+    if (aiQaForm) {
+        aiQaForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const question = aiQaInput.value.trim();
+            if (!question) return;
+            const pid = aiQaForm.getAttribute('data-id');
+
+            // Add user message to log
+            aiQaLog.style.display = 'flex';
+            aiQaLog.innerHTML += `<div style="align-self:flex-end; background:var(--surface-3); padding:8px 12px; border-radius:12px; color:var(--text-hi); max-width:85%; word-break:break-word;">${question}</div>`;
+            aiQaInput.value = '';
+            
+            // Add typing indicator
+            const typingId = 'typing-' + Date.now();
+            aiQaLog.innerHTML += `<div id="${typingId}" style="align-self:flex-start; background:var(--purple-dark); padding:8px 12px; border-radius:12px; color:var(--text-hi); max-width:85%;"><div style="display:flex; gap:6px;"><div class="ai-typing-dot" style="background:#fff; width:4px; height:4px; border-radius:50%;"></div><div class="ai-typing-dot" style="background:#fff; width:4px; height:4px; border-radius:50%;"></div><div class="ai-typing-dot" style="background:#fff; width:4px; height:4px; border-radius:50%;"></div></div></div>`;
+            aiQaLog.scrollTop = aiQaLog.scrollHeight;
+
+            try {
+                const res = await fetch(`/api/ai/product/${pid}/qa`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                const data = await res.json();
+                
+                // Remove typing indicator
+                document.getElementById(typingId).remove();
+                
+                if (data.error) throw new Error(data.error);
+                
+                // Add AI response
+                aiQaLog.innerHTML += `<div style="align-self:flex-start; background:var(--grad-purple); padding:8px 12px; border-radius:12px; color:#fff; max-width:90%; word-break:break-word; line-height:1.5;">${data.answer.replace(/\n/g, '<br>')}</div>`;
+                aiQaLog.scrollTop = aiQaLog.scrollHeight;
+            } catch (err) {
+                document.getElementById(typingId).remove();
+                aiQaLog.innerHTML += `<div style="align-self:flex-start; color:var(--danger); font-size:12px;">Failed to get answer.</div>`;
+            }
+        });
+    }
+
+    // AI Review Sentiment Summary
+    const btnGenerateReviewSummary = document.getElementById('btnGenerateReviewSummary');
+    if (btnGenerateReviewSummary) {
+        btnGenerateReviewSummary.addEventListener('click', async () => {
+            const pid = btnGenerateReviewSummary.getAttribute('data-id');
+            const contentText = document.getElementById('aiReviewSummaryText');
+            
+            contentText.innerHTML = '<div style="display:flex; gap:6px; align-items:center;"><div class="ai-typing-dot" style="background:var(--purple); width:6px; height:6px; border-radius:50%;"></div><div class="ai-typing-dot" style="background:var(--purple); width:6px; height:6px; border-radius:50%;"></div><div class="ai-typing-dot" style="background:var(--purple); width:6px; height:6px; border-radius:50%;"></div><span style="font-size:13px; color:var(--text-lo); margin-left:6px;">Reading reviews...</span></div>';
+
+            try {
+                const res = await fetch(`/api/products/${pid}/reviews/summary`);
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                
+                contentText.innerHTML = `<strong>Sentiment:</strong> ${data.summary}`;
+            } catch (e) {
+                contentText.innerHTML = '<span style="color:var(--danger);">Failed to generate review summary.</span>';
+            }
+        });
+    }
 
 })();

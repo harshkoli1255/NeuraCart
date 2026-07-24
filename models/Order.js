@@ -58,6 +58,9 @@ const orderSchema = new mongoose.Schema({
     },
     razorpayOrderId: {
         type: String
+    },
+    stripeSessionId: {
+        type: String
     }
 }, {
     timestamps: true

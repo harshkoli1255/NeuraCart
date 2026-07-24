@@ -167,9 +167,39 @@ async function generateReviewSummary(reviews) {
     }
 }
 
+let embeddingCache = null;
+let lastCacheUpdate = 0;
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
+/**
+ * Get cached product embeddings to avoid fetching large vectors from DB on every search
+ */
+async function getCachedEmbeddings() {
+    const Product = require('../models/Product');
+    const now = Date.now();
+    
+    if (embeddingCache && (now - lastCacheUpdate) < CACHE_TTL) {
+        return embeddingCache;
+    }
+    
+    console.log('[AI Cache] Refreshing product embeddings cache from DB...');
+    const allProducts = await Product.find({ embedding: { $exists: true, $ne: [] }, stock: { $gt: 0 } })
+        .select('_id embedding');
+        
+    embeddingCache = allProducts.map(p => ({
+        _id: p._id.toString(),
+        embedding: p.embedding
+    }));
+    
+    lastCacheUpdate = now;
+    console.log(`[AI Cache] Loaded ${embeddingCache.length} embeddings into memory.`);
+    return embeddingCache;
+}
+
 module.exports = {
     generateEmbedding,
     generateQueryEmbedding,
     parseNaturalLanguageSearch,
-    generateReviewSummary
+    generateReviewSummary,
+    getCachedEmbeddings
 };

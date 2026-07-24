@@ -83,36 +83,9 @@
                     </div>
                 </div>
 
-                <div class="auth-form" style="margin-top: 24px; gap: 16px;">
-                    <div class="input-group">
-                        <label for="cardName">Name on Card</label>
-                        <div class="input-wrap">
-                            <input type="text" id="cardName" name="cardName" placeholder="John Doe" required>
-                            <i class="fa-regular fa-user"></i>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label for="cardNumber">Card Number</label>
-                        <div class="input-wrap">
-                            <input type="text" id="cardNumber" name="cardNumber" placeholder="4242 4242 4242 4242" required>
-                            <i class="fa-regular fa-credit-card"></i>
-                        </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <div class="input-group">
-                            <label for="expiry">MM/YY</label>
-                            <div class="input-wrap">
-                                <input type="text" id="expiry" name="expiry" placeholder="12/26" required>
-                            </div>
-                        </div>
-                        <div class="input-group">
-                            <label for="cvv">CVV</label>
-                            <div class="input-wrap">
-                                <input type="text" id="cvv" name="cvv" placeholder="123" required>
-                                <i class="fa-regular fa-shield-check"></i>
-                            </div>
-                        </div>
-                    </div>
+                <div style="margin-top: 24px; padding: 16px; background: rgba(139, 92, 246, 0.05); border: 1px dashed var(--purple-lt); border-radius: var(--r-md); text-align: center;">
+                    <i class="fa-brands fa-stripe" style="font-size: 32px; color: #635bff; margin-bottom: 8px;"></i>
+                    <p style="font-size: 14px; color: var(--text-lo); margin: 0;">You will be securely redirected to Stripe to complete your payment.</p>
                 </div>
             </div>
 
@@ -148,6 +121,14 @@
                     <% } %>
                 </div>
                 
+                <div class="coupon-section" style="margin: 24px 0; border-top: 1px dashed var(--border-2); border-bottom: 1px dashed var(--border-2); padding: 16px 0;">
+                    <label for="couponCode" style="display: block; font-size: 13px; font-weight: 600; color: var(--text-hi); margin-bottom: 8px;">Gift Card or Discount Code</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="couponCode" name="couponCode" placeholder="Enter code" style="flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 0 12px; color: var(--text-hi); font-size: 14px; outline: none;">
+                        <button type="button" id="apply-coupon-btn" class="btn btn-secondary" style="padding: 0 16px; font-size: 13px; border-radius: var(--r-md);">Apply</button>
+                    </div>
+                </div>
+                
                 <div class="summary-totals">
                     <div class="summary-row">
                         <span>Subtotal</span>
@@ -158,13 +139,16 @@
                         <span style="color: var(--success); font-weight: 500;">Free</span>
                     </div>
                     <div class="summary-row">
-                        <span>Taxes (18% GST)</span>
-                        <span style="color: var(--text-hi); font-weight: 500;">₹<%= typeof tax !== 'undefined' ? tax.toFixed(2) : '0.00' %></span>
+                        <span>Tax (18% GST)</span>
+                        <span>₹<%= typeof tax !== 'undefined' ? tax.toFixed(2) : '0.00' %></span>
                     </div>
-                    
-                    <div class="summary-total">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 12px; color: #10b981; display: none;" id="discount-row">
+                        <span>Discount (NEURA20)</span>
+                        <span id="discount-amt">-₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 18px; color: var(--text-hi); border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px;">
                         <span>Total</span>
-                        <span id="summary-total-val">₹<%= typeof total !== 'undefined' ? total.toFixed(2) : '0.00' %></span>
+                        <span id="final-total">₹<%= typeof total !== 'undefined' ? total.toFixed(2) : '0.00' %></span>
                     </div>
                 </div>
                 
@@ -185,6 +169,39 @@
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('checkout-form');
     const payBtn = document.getElementById('pay-btn');
+    const applyCouponBtn = document.getElementById('apply-coupon-btn');
+    const couponInput = document.getElementById('couponCode');
+    
+    let appliedCoupon = null;
+    let baseSubtotal = <%= typeof subtotal !== 'undefined' ? subtotal : 0 %>;
+    
+    if (applyCouponBtn && couponInput) {
+        applyCouponBtn.addEventListener('click', () => {
+            const code = couponInput.value.trim().toUpperCase();
+            if (code === 'NEURA20') {
+                appliedCoupon = 'NEURA20';
+                const discount = baseSubtotal * 0.20;
+                const newSubtotal = baseSubtotal - discount;
+                const newTax = newSubtotal * 0.18;
+                const newTotal = newSubtotal + newTax;
+                
+                document.getElementById('discount-row').style.display = 'flex';
+                document.getElementById('discount-amt').textContent = '-₹' + discount.toFixed(2);
+                document.getElementById('final-total').textContent = '₹' + newTotal.toFixed(2);
+                
+                payBtn.innerHTML = 'Pay ₹' + newTotal.toFixed(2) + ' Securely <i class="fa-solid fa-arrow-right"></i>';
+                
+                applyCouponBtn.textContent = 'Applied';
+                applyCouponBtn.disabled = true;
+                applyCouponBtn.style.background = '#10b981';
+                couponInput.disabled = true;
+                
+                showCheckoutNotice('Coupon NEURA20 applied successfully!', false);
+            } else {
+                showCheckoutNotice('Invalid or expired coupon code.', true);
+            }
+        });
+    }
     
     if (form && payBtn) {
         form.addEventListener('submit', async (e) => {
@@ -228,27 +245,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         address,
                         zip,
                         city,
-                        state
+                        state,
+                        couponCode: appliedCoupon
                     })
                 });
                 
                 const data = await response.json();
                 if (!response.ok || !data.success) {
-                    throw new Error(data.error || 'Checkout failed. Please try again.');
+                    throw new Error(data.error || 'Checkout initialization failed. Please try again.');
                 }
                 
-                showCheckoutNotice(data.message || 'Order placed successfully!');
-                
-                // Clear cart badge counter globally if updateBadge is defined
-                var badge = document.querySelector('.nc-cart-count');
-                if (badge) {
-                    badge.textContent = '0';
-                    badge.style.display = 'none';
-                }
-                
-                setTimeout(() => {
-                    window.location.href = '/cart/checkout/success';
-                }, 1500);
+                // Redirect to Stripe Hosted Checkout
+                window.location.href = data.url;
                 
             } catch (err) {
                 console.error("Checkout error:", err);

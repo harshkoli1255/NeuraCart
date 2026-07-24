@@ -19,7 +19,10 @@ exports.getAllProducts = async (req, res, next) => {
 
 exports.getProductById = async (req, res, next) => {
     try {
-        const product = await Product.findById(req.params.id).populate('category');
+        const product = await Product.findById(req.params.id)
+            .populate('category')
+            .populate('seller', 'name');
+            
         if (!product) {
             return res.status(404).json({ success: false, error: 'Product not found' });
         }
@@ -33,120 +36,92 @@ exports.aiSearch = async (req, res, next) => {
     try {
         const { query } = req.body;
         if (!query || !query.trim()) {
-            return res.status(400).json({ success: false, error: 'Please enter a product name or description.' });
+            return res.status(400).json({ success: false, error: 'Please enter what you are looking for.' });
         }
         const trimmedQuery = query.trim();
         console.log(`[AI Search] Query: "${trimmedQuery}"`);
 
-        // ── Step 1: Parse natural language with NVIDIA NIM ──────────────────
-        let parsed = { keywords: [trimmedQuery], maxPrice: null, category: null };
+        const { generateQueryEmbedding, getCachedEmbeddings } = require('../services/ai.service');
+
+        // ── Stage 1: LLM Intent Expansion ──────────────────────────────────
+        let searchTerms = trimmedQuery;
         let aiExplanation = '';
+        let intent = trimmedQuery;
 
-        const apiKey = process.env.NVIDIA_API_KEY;
-        if (apiKey) {
-            try {
-                const { parseNaturalLanguageSearch } = require('../services/ai.service');
-                parsed = await parseNaturalLanguageSearch(trimmedQuery);
-                console.log('[AI Search] Parsed intent:', JSON.stringify(parsed));
-            } catch (parseErr) {
-                console.warn('[AI Search] NLP parse failed, using raw query as fallback:', parseErr.message);
-                // Fallback: extract price from query manually
-                const priceMatch = trimmedQuery.match(/(?:under|below|less than|within|upto|up to)\s*[₹$]?\s*(\d[\d,]*)/i);
-                if (priceMatch) {
-                    parsed.maxPrice = parseInt(priceMatch[1].replace(/,/g, ''), 10);
-                }
-                // Use all non-stopword words as keywords
-                parsed.keywords = trimmedQuery
-                    .replace(/[₹$]/g, '')
-                    .split(/\s+/)
-                    .filter(w => !['under','below','best','good','the','a','an','for','with','and','or','in','of'].includes(w.toLowerCase()))
-                    .filter(w => w.length > 2);
+        try {
+            const expandResp = await openai.chat.completions.create({
+                model: 'meta/llama-3.1-8b-instruct',
+                messages: [{
+                    role: 'system',
+                    content: `You are a search expert for an e-commerce store that sells: Smartphones, Laptops, Fragrances, Skincare, Groceries, Home Decoration, Furniture, Men's/Women's Clothing, Shoes, Watches, Bags, Jewellery.
+
+Analyze this user query and respond ONLY with JSON:
+{"searchTerms":"rich expanded search terms capturing the user's actual product need","intent":"brief plain English description of what they want","aiExplanation":"one friendly sentence explaining what you understood and what results we are showing"}
+
+Query: "${trimmedQuery}"
+
+Example: "red and white shoes" → {"searchTerms":"footwear sneakers athletic running shoes sports shoes casual","intent":"colored athletic footwear","aiExplanation":"Showing you the best footwear and athletic products we carry — closest match to shoes with color variants."}
+Example: "gift for mom" → {"searchTerms":"women gift fragrance perfume jewellery handbag skincare beauty accessories","intent":"women's gift ideas","aiExplanation":"Here are our top picks for gifts — fragrances, jewellery, and accessories that women love."}`
+                }],
+                temperature: 0.2,
+                max_tokens: 150
+            });
+
+            const raw = expandResp.choices[0].message.content.trim().replace(/```json/g,'').replace(/```/g,'').trim();
+            const parsed = JSON.parse(raw);
+            searchTerms = parsed.searchTerms || trimmedQuery;
+            intent = parsed.intent || trimmedQuery;
+            aiExplanation = parsed.aiExplanation || '';
+            console.log(`[AI Search] Expanded: "${searchTerms}" | Intent: ${intent}`);
+        } catch (e) {
+            console.warn('[AI Search] LLM expansion failed:', e.message);
+            searchTerms = trimmedQuery;
+        }
+
+        // ── Stage 2: Vector Embedding + Cosine Similarity Search ────────────
+        const queryVector = await generateQueryEmbedding(searchTerms);
+        let products = [];
+
+        if (queryVector && queryVector.length > 0) {
+            const allEmbeddings = await getCachedEmbeddings();
+
+            const scored = allEmbeddings.map(p => ({
+                id: p._id,
+                score: cosineSimilarity(queryVector, p.embedding)
+            }));
+
+            scored.sort((a, b) => b.score - a.score);
+
+            // Adaptive threshold: if nothing > 0.60, always return top-8
+            let matched = scored.filter(s => s.score > 0.60);
+            if (matched.length === 0) {
+                console.log('[AI Search] Below threshold, returning top-8 closest matches');
+                matched = scored.slice(0, 8);
             }
+            
+            const matchedIds = matched.slice(0, 12).map(s => s.id);
+            const matchedProducts = await Product.find({ _id: { $in: matchedIds } })
+                .populate('category');
+                
+            // Re-sort matchedProducts according to original score order
+            products = matchedIds.map(id => matchedProducts.find(p => p._id.toString() === id.toString())).filter(Boolean);
+            console.log(`[AI Search] Returning ${products.length} products (top score: ${scored[0]?.score?.toFixed(3)})`);
         } else {
-            console.warn('[AI Search] NVIDIA_API_KEY not set — using regex fallback');
-            // Manual price extraction
-            const priceMatch = trimmedQuery.match(/(?:under|below|less than|within|upto|up to)\s*[₹$]?\s*(\d[\d,]*)/i);
-            if (priceMatch) parsed.maxPrice = parseInt(priceMatch[1].replace(/,/g, ''), 10);
-            parsed.keywords = trimmedQuery.split(/\s+/).filter(w => w.length > 2);
+            // Regex fallback
+            const rx = new RegExp(trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), 'i');
+            products = await Product.find({
+                image: { $exists: true, $ne: '' },
+                $or: [{ title: rx }, { name: rx }, { description: rx }, { aiTags: rx }, { brand: rx }]
+            }).populate('category').sort({ 'ratings.average': -1 }).limit(12);
         }
 
-        // ── Step 2: Build Smart MongoDB Query ───────────────────────────────
-        const keywords = Array.isArray(parsed.keywords) && parsed.keywords.length > 0
-            ? parsed.keywords
-            : [trimmedQuery];
-
-        // Build $or conditions for all keywords across all searchable fields
-        const searchConditions = [];
-        for (const kw of keywords) {
-            if (!kw || kw.trim().length < 2) continue;
-            const rx = new RegExp(kw.trim(), 'i');
-            searchConditions.push(
-                { title: rx },
-                { name: rx },
-                { brand: rx },
-                { description: rx },
-                { aiTags: rx },
-                { subcategory: rx }
-            );
-        }
-
-        // Also search by category name if extracted
-        if (parsed.category) {
-            const catDoc = await Category.findOne({ name: new RegExp(`^${parsed.category}$`, 'i') });
-            if (catDoc) searchConditions.push({ category: catDoc._id });
-        }
-
-        let mongoQuery = {
-            image: { $exists: true, $ne: '' },
-            ...(searchConditions.length > 0 ? { $or: searchConditions } : {})
-        };
-
-        // Apply price filter if extracted
-        if (parsed.maxPrice && parsed.maxPrice > 0) {
-            mongoQuery.price = { $lte: parsed.maxPrice };
-        }
-
-        const products = await Product.find(mongoQuery)
-            .populate('category')
-            .sort({ 'ratings.average': -1, price: 1 })
-            .limit(12);
-
-        console.log(`[AI Search] Found ${products.length} products`);
-
-        // ── Step 3: Generate AI Explanation ─────────────────────────────────
-        if (apiKey && products.length > 0) {
-            try {
-                const client = require('axios').create({
-                    baseURL: 'https://integrate.api.nvidia.com/v1',
-                    timeout: 8000,
-                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }
-                });
-                const topTitles = products.slice(0, 3).map(p => `"${p.title}"`).join(', ');
-                const priceContext = parsed.maxPrice ? ` within ₹${parsed.maxPrice.toLocaleString()} budget` : '';
-                const catContext  = parsed.category  ? ` in the ${parsed.category} category` : '';
-                const prompt = `You are NeuraCart's AI shopping assistant. The user searched for: "${trimmedQuery}".
-We found ${products.length} matching products${catContext}${priceContext}.
-Top results include: ${topTitles}.
-Write a single helpful sentence (max 20 words) explaining why these results match the user's query. Be specific and friendly.
-Reply with ONLY that one sentence, no preamble.`;
-
-                const resp = await client.post('/chat/completions', {
-                    model: 'meta/llama-3.1-8b-instruct',
-                    messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.3,
-                    max_tokens: 60
-                });
-                aiExplanation = resp.data.choices[0].message.content.trim().replace(/^"|"$/g, '');
-            } catch (explainErr) {
-                console.warn('[AI Search] Explanation generation failed:', explainErr.message);
-                const priceStr = parsed.maxPrice ? ` under ₹${parsed.maxPrice.toLocaleString()}` : '';
-                aiExplanation = `Found ${products.length} product${products.length !== 1 ? 's' : ''} matching "${trimmedQuery}"${priceStr}.`;
+        // Generate explanation if not already set by LLM
+        if (!aiExplanation) {
+            if (products.length > 0) {
+                aiExplanation = `Found ${products.length} products that match your search for "${trimmedQuery}".`;
+            } else {
+                aiExplanation = `No direct matches for "${trimmedQuery}", but here are our best picks you might like.`;
             }
-        } else if (products.length === 0) {
-            aiExplanation = `No products found matching "${trimmedQuery}". Try a broader keyword or different budget.`;
-        } else {
-            const priceStr = parsed.maxPrice ? ` under ₹${parsed.maxPrice.toLocaleString()}` : '';
-            aiExplanation = `Found ${products.length} product${products.length !== 1 ? 's' : ''} matching your search${priceStr}.`;
         }
 
         return res.status(200).json({
@@ -154,50 +129,76 @@ Reply with ONLY that one sentence, no preamble.`;
             data: products,
             count: products.length,
             aiExplanation,
-            queryInfo: {
-                keywords: parsed.keywords,
-                maxPrice: parsed.maxPrice,
-                category: parsed.category,
-                originalQuery: trimmedQuery
-            }
+            intent,
+            queryInfo: { originalQuery: trimmedQuery, expandedTerms: searchTerms }
         });
 
     } catch (error) {
-        console.error('[AI Search] Fatal error:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'AI Search encountered an error. Please try again.',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
+        console.error('[AI Search] Error:', error);
+        return res.status(500).json({ success: false, error: 'Search failed. Please try again.' });
     }
 };
+
+// Helper: Calculate Cosine Similarity between two vectors
+function cosineSimilarity(vecA, vecB) {
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < vecA.length; i++) {
+        dotProduct += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+    }
+    if (normA === 0 || normB === 0) return 0;
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
 
 exports.apiSearchRegex = async (req, res, next) => {
     try {
         const query = req.query.q ? req.query.q.trim() : '';
         if (!query) {
-            return res.status(400).json({ success: false, error: 'Please enter a product name.' });
+            return res.status(400).json({ success: false, error: 'Please enter a search query.' });
         }
 
-        const regex = new RegExp(query, 'i');
-
-        // Find matching categories first
-        const categories = await Category.find({ name: regex });
-        const categoryIds = categories.map(c => c._id);
-
-        const searchConditions = [
-            { name: regex },
-            { title: regex },
-            { brand: regex },
-            { description: regex },
-            { aiTags: regex }
-        ];
-
-        if (categoryIds.length > 0) {
-            searchConditions.push({ category: { $in: categoryIds } });
+        // 1. Generate query embedding using the AI service
+        const aiService = require('../services/ai.service');
+        let queryVector = [];
+        try {
+            queryVector = await aiService.generateQueryEmbedding(query);
+        } catch (e) {
+            console.error("Embedding generation failed, falling back to regex search.", e);
         }
 
-        const products = await Product.find({ $or: searchConditions }).populate('category');
+        let products = [];
+        if (queryVector && queryVector.length > 0) {
+            // 2. Fetch all products that have an embedding
+            // Note: We use select('+embedding') because it is excluded by default in the schema
+            const allProducts = await Product.find({ embedding: { $exists: true, $ne: [] } })
+                                             .populate('category')
+                                             .select('+embedding');
+            
+            // 3. Calculate similarity score for each product
+            const scoredProducts = allProducts.map(p => {
+                const score = cosineSimilarity(queryVector, p.embedding);
+                return { product: p, score };
+            });
+
+            // 4. Sort by highest score and take top 20
+            scoredProducts.sort((a, b) => b.score - a.score);
+            
+            // Filter out extremely low relevancy (optional threshold)
+            products = scoredProducts.filter(sp => sp.score > 0.70).map(sp => {
+                const p = sp.product.toObject();
+                delete p.embedding; // Remove large embedding array before sending to client
+                return p;
+            }).slice(0, 20);
+        } else {
+            // Fallback to basic regex if AI fails
+            const regex = new RegExp(query, 'i');
+            products = await Product.find({
+                $or: [{ name: regex }, { title: regex }, { description: regex }, { aiTags: regex }]
+            }).populate('category').limit(20);
+        }
 
         return res.status(200).json({
             success: true,
@@ -205,7 +206,7 @@ exports.apiSearchRegex = async (req, res, next) => {
             data: products
         });
     } catch (error) {
-        console.error("Regex Search API Error:", error);
+        console.error("Vector Search API Error:", error);
         res.status(500).json({ success: false, error: 'Search failed. Please try again.' });
     }
 };
@@ -230,8 +231,8 @@ exports.getSimilarProductsAI = async (req, res, next) => {
             category: p.category.name
         }));
 
-        const prompt = `You are an AI product recommendation engine. 
-Find the 4 most semantically similar products to the current product from the catalog.
+        const prompt = `You are an AI product recommendation engine building a "Frequently Bought Together" or "Complete the Look" bundle. 
+Find the 4 most complementary products to the current product from the catalog. For example, if the current product is a laptop, recommend a mouse, bag, or accessories. DO NOT just recommend similar items.
 
 CURRENT PRODUCT:
 Title: ${currentProduct.title}
@@ -409,5 +410,38 @@ exports.deleteReview = async (req, res, next) => {
     } catch (error) {
         console.error("Delete Review Error:", error);
         res.status(500).json({ success: false, message: "Server error." });
+    }
+};
+
+exports.getReviewSummary = async (req, res) => {
+    try {
+        const Review = require("../models/Review");
+        const reviews = await Review.find({ product: req.params.id }).limit(50);
+        
+        if (reviews.length === 0) {
+            return res.json({ summary: "Not enough reviews yet to generate an AI summary." });
+        }
+
+        const reviewTexts = reviews.map(r => `Rating: ${r.rating}/5 - ${r.comment}`).join('\n');
+        
+        const prompt = `You are an AI summarizing customer reviews for a product.
+Based on the following user reviews, generate a short 2-3 sentence sentiment summary. Highlight what people love and any common complaints.
+
+REVIEWS:
+${reviewTexts}
+
+Respond ONLY with the summary paragraph. Keep it helpful, honest, and under 50 words.`;
+
+        const completion = await openai.chat.completions.create({
+            model: "meta/llama-3.1-70b-instruct",
+            messages: [{ role: "system", content: prompt }],
+            temperature: 0.3,
+            max_tokens: 100
+        });
+
+        res.json({ summary: completion.choices[0].message.content.trim() });
+    } catch (error) {
+        console.error("Review Summary Error:", error);
+        res.status(500).json({ error: "Failed to generate review summary." });
     }
 };
